@@ -4,6 +4,7 @@ import com.furkan.ecommerce.auth.api.dto.LoginRequest;
 import com.furkan.ecommerce.auth.api.dto.RegisterRequest;
 import com.furkan.ecommerce.auth.internal.domain.User;
 import com.furkan.ecommerce.auth.internal.exception.AuthException;
+import com.furkan.ecommerce.auth.internal.exception.EmailAlreadyExistsException;
 import com.furkan.ecommerce.auth.internal.persistence.UserRepository;
 import com.furkan.ecommerce.auth.internal.token.RefreshTokenStore;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
@@ -30,6 +31,10 @@ public class AuthCommandService {
 
     @Transactional
     public AuthTokenResult register(RegisterRequest request) {
+        userRepository.findByEmail(request.email()).ifPresent(user -> {
+            throw new EmailAlreadyExistsException(request.email());
+        });
+
         String hash = encoder.encode(request.password());
         User user = userRepository.save(User.register(request.email(), hash));
         return issueTokens(user);

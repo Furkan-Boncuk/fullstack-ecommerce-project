@@ -9,12 +9,13 @@ import com.furkan.ecommerce.auth.internal.config.AuthCookieProperties;
 import com.furkan.ecommerce.auth.internal.exception.AuthException;
 import com.furkan.ecommerce.auth.internal.mapper.AuthMapper;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,8 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private static final String REFRESH_COOKIE = "refresh_token";
-
     private final AuthCommandService service;
     private final AuthMapper mapper;
     private final JwtProperties jwtProperties;
@@ -42,22 +41,18 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    ResponseEntity<AuthResponse> refresh(@CookieValue(value = REFRESH_COOKIE, required = false) String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new AuthException("Missing refresh token");
-        }
+    ResponseEntity<AuthResponse> refresh(HttpServletRequest request) {
+        String refreshToken = extractRefreshToken(request);
         return withRefreshCookie(service.refresh(refreshToken));
     }
 
     @PostMapping("/logout")
-    ResponseEntity<Void> logout(@CookieValue(value = REFRESH_COOKIE, required = false) String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new AuthException("Missing refresh token");
-        }
+    ResponseEntity<Void> logout(HttpServletRequest request) {
+        String refreshToken = extractRefreshToken(request);
         service.logout(refreshToken);
         var cookie = ResponseCookie.from(cookieProperties.refreshCookieName(), "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieProperties.refreshCookieSecure())
                 .sameSite("Lax")
                 .path(cookieProperties.refreshCookiePath())
                 .maxAge(0)
@@ -68,7 +63,7 @@ public class AuthController {
     private ResponseEntity<AuthResponse> withRefreshCookie(AuthTokenResult result) {
         ResponseCookie cookie = ResponseCookie.from(cookieProperties.refreshCookieName(), result.refreshToken())
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieProperties.refreshCookieSecure())
                 .sameSite("Lax")
                 .path(cookieProperties.refreshCookiePath())
                 .maxAge(jwtProperties.refreshTtl())
@@ -76,5 +71,22 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(mapper.toResponse(result));
+    }
+
+    private String extractRefreshToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null || cookies.length == 0) {
+            throw new AuthException("Missing refresh token");
+        }
+
+        for (Cookie cookie : cookies) {
+            if (cookieProperties.refreshCookieName().equals(cookie.getName())
+                    && cookie.getValue() != null
+                    && !cookie.getValue().isBlank()) {
+                return cookie.getValue();
+            }
+        }
+
+        throw new AuthException("Missing refresh token");
     }
 }
