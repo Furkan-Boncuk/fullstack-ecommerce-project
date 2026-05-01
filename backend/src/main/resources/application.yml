@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: ecommerce-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:please-change-this-secret-key-to-32-char-minimum}
+    issuer: ecommerce
+    access-ttl: PT15M
+    refresh-ttl: P7D
+  security:
+    refresh-cookie-name: refresh_token
+    refresh-cookie-path: /api/v1/auth
+  payment:
+    iyzico:
+      enabled: ${IYZICO_ENABLED:false}

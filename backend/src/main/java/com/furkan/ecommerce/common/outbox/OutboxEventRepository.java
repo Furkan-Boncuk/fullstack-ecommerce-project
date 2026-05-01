@@ -1,0 +1,15 @@
+package com.furkan.ecommerce.common.outbox;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> {
+    @Query(value = """
+            SELECT * FROM outbox_events
+            WHERE published_at IS NULL
+            ORDER BY created_at
+            LIMIT 50
+            """, nativeQuery = true)
+    List<OutboxEvent> findPending();
+}

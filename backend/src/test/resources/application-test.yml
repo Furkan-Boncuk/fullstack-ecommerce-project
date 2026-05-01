@@ -1,0 +1,18 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  data:
+    redis:
+      timeout: 2s
+app:
+  jwt:
+    secret: test-secret-key-please-change-this-for-real-security-32chars
+    issuer: ecommerce-test
+    access-ttl: PT2M
+    refresh-ttl: PT15S
+  security:
+    refresh-cookie-name: refresh_token
+    refresh-cookie-path: /api/v1/auth
