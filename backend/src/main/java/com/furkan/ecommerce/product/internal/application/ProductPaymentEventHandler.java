@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.product.internal.application;
+package com.furkan.ecommerce.product.internal;
 
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.common.outbox.ProcessedEvent;
@@ -6,7 +6,6 @@ import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.api.OrderReadApi;
 import com.furkan.ecommerce.payment.api.event.PaymentFailedEvent;
 import com.furkan.ecommerce.payment.api.event.PaymentSucceededEvent;
-import com.furkan.ecommerce.product.internal.persistence.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -62,4 +61,3 @@ class ProductPaymentEventHandler {
         }
     }
 }
-

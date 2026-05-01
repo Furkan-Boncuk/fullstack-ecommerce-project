@@ -1,11 +1,11 @@
-package com.furkan.ecommerce.product.internal.application;
+package com.furkan.ecommerce.product.internal;
 
 import com.furkan.ecommerce.common.dto.PageResponse;
+import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.ProductReadApi;
+import com.furkan.ecommerce.product.api.dto.ProductCategorySummary;
 import com.furkan.ecommerce.product.api.dto.ProductFilterRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
-import com.furkan.ecommerce.product.internal.persistence.ProductRepository;
-import com.furkan.ecommerce.product.internal.specification.ProductSpecifications;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -22,17 +22,38 @@ public class ProductReadService implements ProductReadApi {
 
     public PageResponse<ProductView> list(ProductFilterRequest filter, Pageable pageable) {
         var page = repository.findAll(ProductSpecifications.from(filter), pageable)
-                .map(p -> new ProductView(p.getId(), p.getName(), p.getPrice(), p.getStock()));
+                .map(this::toView);
         return PageResponse.of(page);
+    }
+
+    public ProductView getById(Long id) {
+        return findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found"));
     }
 
     @Override
     public Optional<ProductView> findById(Long id) {
-        return repository.findById(id).map(p -> new ProductView(p.getId(), p.getName(), p.getPrice(), p.getStock()));
+        return repository.findById(id).map(this::toView);
     }
 
     @Override
     public List<ProductView> findByIds(Collection<Long> ids) {
-        return repository.findAllById(ids).stream().map(p -> new ProductView(p.getId(), p.getName(), p.getPrice(), p.getStock())).toList();
+        return repository.findByIdIn(ids).stream().map(this::toView).toList();
+    }
+
+    private ProductView toView(Product product) {
+        return new ProductView(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                toCategorySummary(product.getCategory()),
+                product.getImageUrl(),
+                product.getPrice(),
+                product.getStock()
+        );
+    }
+
+    private ProductCategorySummary toCategorySummary(Category category) {
+        return new ProductCategorySummary(category.getId(), category.getName(), category.getSlug());
     }
 }

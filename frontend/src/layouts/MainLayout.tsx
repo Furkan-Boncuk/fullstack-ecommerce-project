@@ -1,5 +1,5 @@
 import { Box, Button, Container, Flex, Heading, Spacer } from '@chakra-ui/react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, Outlet, useNavigate } from 'react-router-dom';
 import { useLogout } from '../api/mutations/useLogout';
 import { useAuthStore } from '../store/authStore';
 
@@ -25,6 +25,9 @@ export function MainLayout() {
             <Heading size="md" color="brand.700" letterSpacing="-0.02em">
               Ecommerce
             </Heading>
+            <Button as={RouterLink} to="/products" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">
+              Ürünler
+            </Button>
             <Spacer />
             <Button size="sm" variant="outline" colorScheme="brand" borderRadius="full" onClick={handleLogout}>
               Çıkış Yap

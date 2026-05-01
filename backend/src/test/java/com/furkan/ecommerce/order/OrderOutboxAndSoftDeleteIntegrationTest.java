@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.furkan.ecommerce.auth.internal.domain.User;
 import com.furkan.ecommerce.auth.internal.persistence.UserRepository;
-import com.furkan.ecommerce.product.internal.domain.Product;
-import com.furkan.ecommerce.product.internal.persistence.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -55,9 +53,6 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
     MockMvc mockMvc;
 
     @Autowired
-    ProductRepository productRepository;
-
-    @Autowired
     UserRepository userRepository;
 
     @Autowired
@@ -68,14 +63,14 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
 
     @Test
     void should_write_order_created_event_to_outbox_on_order_creation() throws Exception {
-        Product product = productRepository.save(Product.create("Phone", BigDecimal.valueOf(1000), 20));
+        Long productId = createProduct("Phone", BigDecimal.valueOf(1000), 20, true);
 
         String token = registerAndExtractAccessToken("order-flow@test.com");
 
         mockMvc.perform(post("/api/v1/cart/items")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"productId\":" + product.getId() + ",\"quantity\":2}"))
+                        .content("{\"productId\":" + productId + ",\"quantity\":2}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/orders")
@@ -92,10 +87,8 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
 
     @Test
     void should_hide_soft_deleted_product_and_user_from_default_queries() throws Exception {
-        Product activeProduct = productRepository.save(Product.create("Visible", BigDecimal.valueOf(50), 5));
-        Product hiddenProduct = productRepository.save(Product.create("Hidden", BigDecimal.valueOf(70), 5));
-        hiddenProduct.deactivate();
-        productRepository.save(hiddenProduct);
+        Long activeProductId = createProduct("Visible", BigDecimal.valueOf(50), 5, true);
+        Long hiddenProductId = createProduct("Hidden", BigDecimal.valueOf(70), 5, false);
 
         String productListResponse = mockMvc.perform(get("/api/v1/products?page=0&size=20"))
                 .andExpect(status().isOk())
@@ -109,8 +102,8 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
             productIds.add(node.get("id").asLong());
         }
 
-        assertThat(productIds).contains(activeProduct.getId());
-        assertThat(productIds).doesNotContain(hiddenProduct.getId());
+        assertThat(productIds).contains(activeProductId);
+        assertThat(productIds).doesNotContain(hiddenProductId);
 
         String email = "inactive-user@test.com";
         registerAndExtractAccessToken(email);
@@ -127,6 +120,28 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private Long createProduct(String name, BigDecimal price, int stock, boolean active) {
+        Long categoryId = jdbcTemplate.queryForObject(
+                "SELECT id FROM categories WHERE slug = 'elektronik'",
+                Long.class
+        );
+        return jdbcTemplate.queryForObject(
+                """
+                INSERT INTO products (name, description, category_id, image_url, price, stock, reserved_stock, active)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+                RETURNING id
+                """,
+                Long.class,
+                name,
+                name + " description",
+                categoryId,
+                "https://picsum.photos/id/180/900/700",
+                price,
+                stock,
+                active
+        );
     }
 
     private String registerAndExtractAccessToken(String email) throws Exception {

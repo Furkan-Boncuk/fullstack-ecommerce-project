@@ -3,7 +3,8 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { LoginView } from '../views/auth/LoginView';
 import { RegisterView } from '../views/auth/RegisterView';
-import { HomeView } from '../views/home/HomeView';
+import { ProductDetailContainer } from '../containers/product/ProductDetailContainer';
+import { ProductListContainer } from '../containers/product/ProductListContainer';
 import { useAuthStore } from '../store/authStore';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -27,7 +28,11 @@ export const router = createBrowserRouter([
         <MainLayout />
       </ProtectedRoute>
     ),
-    children: [{ index: true, element: <HomeView /> }]
+    children: [
+      { index: true, element: <Navigate to="/products" replace /> },
+      { path: 'products', element: <ProductListContainer /> },
+      { path: 'products/:id', element: <ProductDetailContainer /> }
+    ]
   },
   { path: '*', element: <Navigate to="/auth/login" replace /> }
 ]);
