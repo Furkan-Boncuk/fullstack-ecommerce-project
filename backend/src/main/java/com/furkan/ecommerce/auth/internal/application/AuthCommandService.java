@@ -2,11 +2,16 @@ package com.furkan.ecommerce.auth.internal.application;
 
 import com.furkan.ecommerce.auth.api.dto.LoginRequest;
 import com.furkan.ecommerce.auth.api.dto.RegisterRequest;
+import com.furkan.ecommerce.auth.api.dto.UpdatePaymentProfileRequest;
+import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
 import com.furkan.ecommerce.auth.internal.domain.User;
 import com.furkan.ecommerce.auth.internal.exception.AuthException;
 import com.furkan.ecommerce.auth.internal.exception.EmailAlreadyExistsException;
+import com.furkan.ecommerce.auth.internal.mapper.AuthMapper;
 import com.furkan.ecommerce.auth.internal.persistence.UserRepository;
 import com.furkan.ecommerce.auth.internal.token.RefreshTokenStore;
+import com.furkan.ecommerce.common.exception.BusinessException;
+import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
 import com.furkan.ecommerce.infrastructure.jwt.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +32,7 @@ public class AuthCommandService {
     private final RefreshTokenStore refreshTokenStore;
     private final JwtTokenProvider tokenProvider;
     private final JwtProperties jwtProperties;
+    private final AuthMapper authMapper;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Transactional
@@ -70,6 +76,32 @@ public class AuthCommandService {
     public void logout(String refreshTokenPlain) {
         String hash = hash(refreshTokenPlain);
         refreshTokenStore.findByTokenHash(hash).ifPresent(token -> refreshTokenStore.deleteByUserId(token.userId()));
+    }
+
+    @Transactional
+    public AuthPaymentProfileView updatePaymentProfile(Long userId, UpdatePaymentProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
+
+        user.updatePaymentProfile(
+                request.firstName(),
+                request.lastName(),
+                request.phoneNumber(),
+                request.identityNumber(),
+                request.address(),
+                request.city(),
+                request.country(),
+                request.zipCode()
+        );
+
+        if (!user.hasCompletePaymentProfile()) {
+            throw new BusinessException(
+                    "PAYMENT_PROFILE_INCOMPLETE",
+                    "User profile is incomplete for payment. Required: firstName,lastName,phoneNumber,identityNumber,address,city,country,zipCode"
+            );
+        }
+
+        return authMapper.toPaymentProfileView(user);
     }
 
     private AuthTokenResult issueTokens(User user) {

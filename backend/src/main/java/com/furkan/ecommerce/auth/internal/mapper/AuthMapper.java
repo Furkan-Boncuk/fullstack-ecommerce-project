@@ -1,6 +1,7 @@
 package com.furkan.ecommerce.auth.internal.mapper;
 
 import com.furkan.ecommerce.auth.api.dto.AuthPrincipalView;
+import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
 import com.furkan.ecommerce.auth.api.dto.AuthResponse;
 import com.furkan.ecommerce.auth.internal.application.AuthTokenResult;
 import com.furkan.ecommerce.auth.internal.domain.User;
@@ -14,4 +15,7 @@ public interface AuthMapper {
 
     @Mapping(target = "roles", expression = "java(user.getRoles().stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()))")
     AuthPrincipalView toPrincipalView(User user);
+
+    @Mapping(target = "userId", source = "id")
+    AuthPaymentProfileView toPaymentProfileView(User user);
 }

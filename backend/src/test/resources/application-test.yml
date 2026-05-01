@@ -16,3 +16,12 @@ app:
   security:
     refresh-cookie-name: refresh_token
     refresh-cookie-path: /api/v1/auth
+    pii:
+      encryption-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  payment:
+    provider: iyzico
+    callback-url: http://localhost:8080/api/v1/payments/callback
+    iyzico:
+      api-key: test-api-key
+      secret-key: test-secret-key
+      base-url: https://sandbox-api.iyzipay.com

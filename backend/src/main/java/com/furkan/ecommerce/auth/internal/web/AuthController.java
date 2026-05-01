@@ -3,11 +3,15 @@ package com.furkan.ecommerce.auth.internal.web;
 import com.furkan.ecommerce.auth.api.dto.AuthResponse;
 import com.furkan.ecommerce.auth.api.dto.LoginRequest;
 import com.furkan.ecommerce.auth.api.dto.RegisterRequest;
+import com.furkan.ecommerce.auth.api.dto.UpdatePaymentProfileRequest;
+import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
 import com.furkan.ecommerce.auth.internal.application.AuthCommandService;
 import com.furkan.ecommerce.auth.internal.application.AuthTokenResult;
 import com.furkan.ecommerce.auth.internal.config.AuthCookieProperties;
 import com.furkan.ecommerce.auth.internal.exception.AuthException;
 import com.furkan.ecommerce.auth.internal.mapper.AuthMapper;
+import com.furkan.ecommerce.common.exception.UnauthorizedException;
+import com.furkan.ecommerce.infrastructure.security.SecurityPrincipal;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,6 +64,17 @@ public class AuthController {
                 .maxAge(0)
                 .build();
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+    }
+
+    @PatchMapping("/profile/payment")
+    ResponseEntity<AuthPaymentProfileView> updatePaymentProfile(
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @Valid @RequestBody UpdatePaymentProfileRequest request
+    ) {
+        if (principal == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+        return ResponseEntity.ok(service.updatePaymentProfile(principal.userId(), request));
     }
 
     private ResponseEntity<AuthResponse> withRefreshCookie(AuthTokenResult result) {

@@ -37,6 +37,12 @@ app:
     refresh-cookie-name: ${REFRESH_COOKIE_NAME:refresh_token}
     refresh-cookie-path: ${REFRESH_COOKIE_PATH:/api/v1/auth}
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:true}
+    pii:
+      encryption-key: ${PII_ENCRYPTION_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
   payment:
+    callback-url: ${PAYMENT_CALLBACK_URL:https://example-ngrok-domain.ngrok-free.app/api/v1/payments/callback}
+    provider: ${PAYMENT_PROVIDER:iyzico}
     iyzico:
-      enabled: ${IYZICO_ENABLED:false}
+      api-key: ${IYZICO_API_KEY:}
+      secret-key: ${IYZICO_SECRET_KEY:}
+      base-url: ${IYZICO_BASE_URL:https://sandbox-api.iyzipay.com}

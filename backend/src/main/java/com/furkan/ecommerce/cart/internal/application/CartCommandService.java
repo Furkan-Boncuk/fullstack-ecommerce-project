@@ -32,9 +32,9 @@ public class CartCommandService {
         cart.remove(productId);
     }
 
-    public CartView getCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
-        return toView(cart);
+    @Transactional
+    void clearCart(Long userId) {
+        cartRepository.findByUserId(userId).ifPresent(Cart::clear);
     }
 
     private CartView toView(Cart cart) {

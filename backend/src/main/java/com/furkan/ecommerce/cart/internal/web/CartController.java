@@ -1,5 +1,6 @@
 package com.furkan.ecommerce.cart.internal.web;
 
+import com.furkan.ecommerce.cart.api.CartReadApi;
 import com.furkan.ecommerce.cart.api.dto.CartItemRequest;
 import com.furkan.ecommerce.cart.api.dto.CartView;
 import com.furkan.ecommerce.cart.internal.application.CartCommandService;
@@ -19,20 +20,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
 public class CartController {
-    private final CartCommandService service;
+    private final CartCommandService commandService;
+    private final CartReadApi cartReadApi;
 
     @GetMapping
     CartView getCart(@AuthenticationPrincipal SecurityPrincipal principal) {
-        return service.getCart(principal.userId());
+        return cartReadApi.getCart(principal.userId());
     }
 
     @PostMapping("/items")
     CartView addItem(@AuthenticationPrincipal SecurityPrincipal principal, @Valid @RequestBody CartItemRequest request) {
-        return service.addItem(principal.userId(), request);
+        return commandService.addItem(principal.userId(), request);
     }
 
     @DeleteMapping("/items/{productId}")
     void removeItem(@AuthenticationPrincipal SecurityPrincipal principal, @PathVariable Long productId) {
-        service.removeItem(principal.userId(), productId);
+        commandService.removeItem(principal.userId(), productId);
     }
 }

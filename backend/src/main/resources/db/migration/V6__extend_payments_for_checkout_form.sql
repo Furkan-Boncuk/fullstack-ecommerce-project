@@ -1,0 +1,5 @@
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS checkout_url VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS checkout_token VARCHAR(150),
+    ADD COLUMN IF NOT EXISTS provider_reference VARCHAR(120);
+

@@ -2,6 +2,8 @@ name: backend-ci
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'backend/**'
   pull_request:
@@ -33,6 +35,14 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Build image with Jib
-        run: mvn -f backend/pom.xml -DskipTests jib:build
+        run: mvn -f backend/pom.xml -DskipTests -Djib.to.tags=latest,sha-${GITHUB_SHA} jib:build
         env:
           IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+      - name: Slack notify
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        run: |
+          STATUS="${{ job.status }}"
+          TEXT="backend-ci image job: ${STATUS} (commit: ${GITHUB_SHA})"
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"${TEXT}\"}" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}"
