@@ -3,8 +3,10 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { LoginView } from '../views/auth/LoginView';
 import { RegisterView } from '../views/auth/RegisterView';
+import { CartContainer } from '../containers/cart/CartContainer';
 import { ProductDetailContainer } from '../containers/product/ProductDetailContainer';
 import { ProductListContainer } from '../containers/product/ProductListContainer';
+import { CheckoutView } from '../views/checkout/CheckoutView';
 import { useAuthStore } from '../store/authStore';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -31,7 +33,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/products" replace /> },
       { path: 'products', element: <ProductListContainer /> },
-      { path: 'products/:id', element: <ProductDetailContainer /> }
+      { path: 'products/:id', element: <ProductDetailContainer /> },
+      { path: 'cart', element: <CartContainer /> },
+      { path: 'checkout', element: <CheckoutView /> }
     ]
   },
   { path: '*', element: <Navigate to="/auth/login" replace /> }

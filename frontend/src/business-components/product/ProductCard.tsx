@@ -1,4 +1,4 @@
-import { ArrowForwardIcon } from '@chakra-ui/icons';
+import { ArrowForwardIcon, CheckIcon } from '@chakra-ui/icons';
 import {
   AspectRatio,
   Badge,
@@ -16,27 +16,51 @@ import { Product } from '../../types/product';
 
 interface ProductCardProps {
   product: Product;
+  isAddingToCart: boolean;
+  isInCart: boolean;
+  onAddToCart: (productId: number) => void;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: ProductCardProps) {
   const hasStock = product.stock > 0;
 
   return (
     <Box
-      bg="white"
+      position="relative"
+      bg={isInCart ? 'brand.50' : 'white'}
       border="1px solid"
-      borderColor="purple.100"
+      borderColor={isInCart ? 'brand.400' : 'purple.100'}
       borderRadius="lg"
       overflow="hidden"
-      boxShadow="0 16px 36px rgba(74, 37, 125, 0.08)"
+      boxShadow={isInCart ? '0 20px 44px rgba(101, 54, 171, 0.16)' : '0 16px 36px rgba(74, 37, 125, 0.08)'}
       transition="all .18s ease"
       _hover={{ transform: 'translateY(-3px)', borderColor: 'brand.300', boxShadow: '0 20px 42px rgba(74, 37, 125, 0.13)' }}
     >
+      {isInCart ? (
+        <Badge
+          position="absolute"
+          top={3}
+          right={3}
+          zIndex={1}
+          colorScheme="purple"
+          borderRadius="full"
+          px={3}
+          py={1}
+          textTransform="none"
+          display="inline-flex"
+          alignItems="center"
+          gap={1}
+          boxShadow="0 10px 22px rgba(56, 29, 92, 0.18)"
+        >
+          <CheckIcon boxSize="10px" /> Sepette
+        </Badge>
+      ) : null}
+
       <AspectRatio ratio={4 / 3} bg="brand.50">
         <Image src={product.imageUrl} alt={product.name} objectFit="cover" fallbackSrc="https://placehold.co/640x480/f6f1ff/6536ab?text=Ecommerce" />
       </AspectRatio>
 
-      <Stack p={5} spacing={4} minH="260px">
+      <Stack p={5} spacing={4} minH="300px">
         <HStack justify="space-between" align="start" gap={3}>
           <Badge colorScheme="purple" borderRadius="full" px={3} py={1} textTransform="none">
             {product.category.name}
@@ -55,27 +79,40 @@ export function ProductCard({ product }: ProductCardProps) {
           </Text>
         </Stack>
 
-        <HStack justify="space-between" align="center">
-          <Box>
-            <Text fontSize="xs" color="gray.500">
-              Fiyat
-            </Text>
-            <Text fontWeight="800" color="brand.700" fontSize="lg">
-              {formatPrice(product.price)}
-            </Text>
-          </Box>
+        <Stack spacing={3}>
+          <HStack justify="space-between" align="center">
+            <Box>
+              <Text fontSize="xs" color="gray.500">
+                Fiyat
+              </Text>
+              <Text fontWeight="800" color="brand.700" fontSize="lg">
+                {formatPrice(product.price)}
+              </Text>
+            </Box>
+            <Button
+              as={RouterLink}
+              to={`/products/${product.id}`}
+              rightIcon={<ArrowForwardIcon />}
+              colorScheme="brand"
+              variant="outline"
+              borderRadius="full"
+              size="sm"
+            >
+              Detaya Git
+            </Button>
+          </HStack>
+
           <Button
-            as={RouterLink}
-            to={`/products/${product.id}`}
-            rightIcon={<ArrowForwardIcon />}
             colorScheme="brand"
-            variant="outline"
+            variant={isInCart ? 'outline' : 'solid'}
             borderRadius="full"
-            size="sm"
+            isDisabled={!hasStock}
+            isLoading={isAddingToCart}
+            onClick={() => onAddToCart(product.id)}
           >
-            Detaya Git
+            {isInCart ? 'Sepette' : 'Sepete Ekle'}
           </Button>
-        </HStack>
+        </Stack>
       </Stack>
     </Box>
   );

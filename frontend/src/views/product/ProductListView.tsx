@@ -25,10 +25,13 @@ interface ProductListViewProps {
   isLast: boolean;
   isLoading: boolean;
   isFetching: boolean;
+  addingProductId?: number;
+  cartProductIds: Set<number>;
   errorMessage?: string;
   onFiltersChange: (values: ProductFilterValues) => void;
   onFiltersClear: () => void;
   onPageChange: (page: number) => void;
+  onAddToCart: (productId: number) => void;
 }
 
 export function ProductListView({
@@ -42,10 +45,13 @@ export function ProductListView({
   isLast,
   isLoading,
   isFetching,
+  addingProductId,
+  cartProductIds,
   errorMessage,
   onFiltersChange,
   onFiltersClear,
-  onPageChange
+  onPageChange,
+  onAddToCart
 }: ProductListViewProps) {
   const hasProducts = products.length > 0;
 
@@ -80,7 +86,7 @@ export function ProductListView({
       {isLoading ? (
         <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={5}>
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} height="360px" borderRadius="lg" startColor="purple.50" endColor="purple.100" />
+            <Skeleton key={index} height="396px" borderRadius="lg" startColor="purple.50" endColor="purple.100" />
           ))}
         </SimpleGrid>
       ) : null}
@@ -100,7 +106,13 @@ export function ProductListView({
         <Stack spacing={6} opacity={isFetching ? 0.72 : 1} transition="opacity .18s ease">
           <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={5}>
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                isAddingToCart={addingProductId === product.id}
+                isInCart={cartProductIds.has(product.id)}
+                onAddToCart={onAddToCart}
+              />
             ))}
           </SimpleGrid>
           <ProductPagination page={page} totalPages={totalPages} isLast={isLast} onPageChange={onPageChange} />

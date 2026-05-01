@@ -34,7 +34,7 @@ public class CartController {
     }
 
     @DeleteMapping("/items/{productId}")
-    void removeItem(@AuthenticationPrincipal SecurityPrincipal principal, @PathVariable Long productId) {
-        commandService.removeItem(principal.userId(), productId);
+    CartView removeItem(@AuthenticationPrincipal SecurityPrincipal principal, @PathVariable Long productId) {
+        return commandService.removeItem(principal.userId(), productId);
     }
 }

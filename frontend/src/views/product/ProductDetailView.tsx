@@ -20,10 +20,12 @@ import { Product } from '../../types/product';
 interface ProductDetailViewProps {
   product?: Product;
   isLoading: boolean;
+  isAddingToCart: boolean;
   errorMessage?: string;
+  onAddToCart: () => void;
 }
 
-export function ProductDetailView({ product, isLoading, errorMessage }: ProductDetailViewProps) {
+export function ProductDetailView({ product, isLoading, isAddingToCart, errorMessage, onAddToCart }: ProductDetailViewProps) {
   if (isLoading) {
     return (
       <Stack spacing={5}>
@@ -108,6 +110,17 @@ export function ProductDetailView({ product, isLoading, errorMessage }: ProductD
               </Text>
             </Box>
           </Grid>
+
+          <Button
+            colorScheme="brand"
+            borderRadius="full"
+            h="52px"
+            isDisabled={!hasStock}
+            isLoading={isAddingToCart}
+            onClick={onAddToCart}
+          >
+            Sepete Ekle
+          </Button>
         </Stack>
       </Grid>
     </Stack>

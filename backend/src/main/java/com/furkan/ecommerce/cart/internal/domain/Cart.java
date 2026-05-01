@@ -1,6 +1,7 @@
 package com.furkan.ecommerce.cart.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
+import com.furkan.ecommerce.common.exception.BusinessException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,6 +32,7 @@ public class Cart extends BaseEntity {
     }
 
     public void addOrUpdate(Long productId, int quantity) {
+        validateQuantity(quantity);
         var existing = items.stream().filter(i -> i.getProductId().equals(productId)).findFirst();
         if (existing.isPresent()) {
             existing.get().changeQuantity(quantity);
@@ -45,5 +47,11 @@ public class Cart extends BaseEntity {
 
     public void clear() {
         items.clear();
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException("INVALID_QUANTITY", "Quantity must be greater than zero");
+        }
     }
 }

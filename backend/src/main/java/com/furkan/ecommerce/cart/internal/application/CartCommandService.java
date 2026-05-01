@@ -4,8 +4,10 @@ import com.furkan.ecommerce.cart.api.dto.CartItemRequest;
 import com.furkan.ecommerce.cart.api.dto.CartView;
 import com.furkan.ecommerce.cart.internal.domain.Cart;
 import com.furkan.ecommerce.cart.internal.persistence.CartRepository;
+import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.ProductReadApi;
+import com.furkan.ecommerce.product.api.dto.ProductView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,28 +18,34 @@ import org.springframework.transaction.annotation.Transactional;
 public class CartCommandService {
     private final CartRepository cartRepository;
     private final ProductReadApi productReadApi;
+    private final CartViewAssembler cartViewAssembler;
 
     @Transactional
     public CartView addItem(Long userId, CartItemRequest request) {
-        productReadApi.findById(request.productId()).orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found"));
+        ProductView product = productReadApi.findById(request.productId())
+                .orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found"));
+        if (product.stock() < request.quantity()) {
+            throw new BusinessException("INSUFFICIENT_STOCK", "Insufficient stock");
+        }
+
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
         cart.addOrUpdate(request.productId(), request.quantity());
-        cartRepository.save(cart);
-        return toView(cart);
+        Cart savedCart = cartRepository.save(cart);
+        return cartViewAssembler.toView(savedCart);
     }
 
     @Transactional
-    public void removeItem(Long userId, Long productId) {
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("CART_NOT_FOUND", "Cart not found"));
+    public CartView removeItem(Long userId, Long productId) {
+        Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
         cart.remove(productId);
+        if (cart.getId() == null) {
+            return cartViewAssembler.toView(cart);
+        }
+        return cartViewAssembler.toView(cartRepository.save(cart));
     }
 
     @Transactional
     void clearCart(Long userId) {
         cartRepository.findByUserId(userId).ifPresent(Cart::clear);
-    }
-
-    private CartView toView(Cart cart) {
-        return new CartView(cart.getUserId(), cart.getItems().stream().map(i -> new CartView.CartLineView(i.getProductId(), i.getQuantity())).toList());
     }
 }

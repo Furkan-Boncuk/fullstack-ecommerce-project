@@ -1,5 +1,9 @@
+import { AxiosError } from 'axios';
 import { useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
+import { useAddToCart } from '../../api/mutations/useAddToCart';
+import { useCart } from '../../api/queries/useCart';
 import { useCategories } from '../../api/queries/useCategories';
 import { useProducts } from '../../api/queries/useProducts';
 import { ProductFilterValues } from '../../business-components/product/ProductFilters';
@@ -22,8 +26,14 @@ function getPageParam(value: string | null) {
   return parsed && parsed > 0 ? parsed : 0;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return (error as AxiosError<{ detail?: string }>).response?.data?.detail ?? fallback;
+}
+
 export function ProductListContainer() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const addToCartMutation = useAddToCart();
+  const cartQuery = useCart();
 
   const filterValues: ProductFilterValues = useMemo(
     () => ({
@@ -54,6 +64,10 @@ export function ProductListContainer() {
 
   const productsQuery = useProducts(productParams);
   const categoriesQuery = useCategories();
+  const cartProductIds = useMemo(
+    () => new Set(cartQuery.data?.items.map((item) => item.productId) ?? []),
+    [cartQuery.data?.items]
+  );
 
   const updateFilters = (nextValues: ProductFilterValues) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -96,6 +110,16 @@ export function ProductListContainer() {
     setSearchParams(nextParams);
   };
 
+  const addToCart = (productId: number) => {
+    addToCartMutation.mutate(
+      { productId, quantity: 1 },
+      {
+        onSuccess: () => toast.success('Ürün sepete eklendi.'),
+        onError: (error) => toast.error(getErrorMessage(error, 'Ürün sepete eklenemedi.'))
+      }
+    );
+  };
+
   return (
     <ProductListView
       filters={filterValues}
@@ -108,10 +132,13 @@ export function ProductListContainer() {
       isLast={productsQuery.data?.last ?? true}
       isLoading={productsQuery.isLoading}
       isFetching={productsQuery.isFetching}
+      addingProductId={addToCartMutation.isPending ? addToCartMutation.variables?.productId : undefined}
+      cartProductIds={cartProductIds}
       errorMessage={productsQuery.isError ? 'Ürünler yüklenirken bir hata oluştu.' : undefined}
       onFiltersChange={updateFilters}
       onFiltersClear={clearFilters}
       onPageChange={changePage}
+      onAddToCart={addToCart}
     />
   );
 }
