@@ -14,6 +14,7 @@ import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
 import com.furkan.ecommerce.infrastructure.jwt.JwtTokenProvider;
+import com.furkan.ecommerce.location.api.LocationReadApi;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -32,6 +33,7 @@ public class AuthCommandService {
     private final RefreshTokenStore refreshTokenStore;
     private final JwtTokenProvider tokenProvider;
     private final JwtProperties jwtProperties;
+    private final LocationReadApi locationReadApi;
     private final AuthMapper authMapper;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
@@ -83,6 +85,8 @@ public class AuthCommandService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
 
+        validateTurkeyLocation(request);
+
         user.updatePaymentProfile(
                 request.firstName(),
                 request.lastName(),
@@ -102,6 +106,15 @@ public class AuthCommandService {
         }
 
         return authMapper.toPaymentProfileView(user);
+    }
+
+    private void validateTurkeyLocation(UpdatePaymentProfileRequest request) {
+        if (!locationReadApi.isSupportedTurkeyLocation(request.country(), request.city())) {
+            throw new BusinessException(
+                    "PAYMENT_PROFILE_INVALID_LOCATION",
+                    "Country must be Turkey and city must be a supported Turkey city"
+            );
+        }
     }
 
     private AuthTokenResult issueTokens(User user) {

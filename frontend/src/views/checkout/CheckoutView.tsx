@@ -4,12 +4,15 @@ import { PaymentProfileForm } from '../../business-components/checkout/PaymentPr
 import { ErrorMessage } from '../../components/feedback/ErrorMessage';
 import { formatPrice } from '../../helpers/formatPrice';
 import { Cart } from '../../types/cart';
+import { City } from '../../types/location';
 import { UpdatePaymentProfileRequest } from '../../types/paymentProfile';
 
 interface CheckoutViewProps {
   cart?: Cart;
   profileValues: UpdatePaymentProfileRequest;
+  cities: City[];
   isLoading: boolean;
+  isCityLoading: boolean;
   isProfileSaving: boolean;
   isPaying: boolean;
   errorMessage?: string;
@@ -21,7 +24,9 @@ interface CheckoutViewProps {
 export function CheckoutView({
   cart,
   profileValues,
+  cities,
   isLoading,
+  isCityLoading,
   isProfileSaving,
   isPaying,
   errorMessage,
@@ -67,7 +72,14 @@ export function CheckoutView({
               <Heading size="md" color="gray.900">Ödeme Bilgileri</Heading>
               <Text color="gray.600" mt={1}>Iyzico ödeme başlatmak için bu bilgiler eksiksiz olmalı.</Text>
             </Box>
-            <PaymentProfileForm values={profileValues} isSaving={isProfileSaving} onChange={onProfileChange} onSubmit={onProfileSubmit} />
+            <PaymentProfileForm
+              values={profileValues}
+              cities={cities}
+              isCityLoading={isCityLoading}
+              isSaving={isProfileSaving}
+              onChange={onProfileChange}
+              onSubmit={onProfileSubmit}
+            />
           </Stack>
         </Box>
 
