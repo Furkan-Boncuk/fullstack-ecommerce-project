@@ -42,7 +42,6 @@ jobs:
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             echo "name=production" >> "$GITHUB_OUTPUT"
             echo "spring_profile=prod" >> "$GITHUB_OUTPUT"
-            echo "image_alias=prod-latest" >> "$GITHUB_OUTPUT"
             echo "eb_environment=${{ vars.EB_ENVIRONMENT_PRODUCTION }}" >> "$GITHUB_OUTPUT"
             echo "frontend_bucket=${{ vars.FRONTEND_BUCKET_PRODUCTION }}" >> "$GITHUB_OUTPUT"
             echo "cloudfront_distribution_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID_PRODUCTION }}" >> "$GITHUB_OUTPUT"
@@ -51,7 +50,6 @@ jobs:
           else
             echo "name=staging" >> "$GITHUB_OUTPUT"
             echo "spring_profile=staging" >> "$GITHUB_OUTPUT"
-            echo "image_alias=staging-latest" >> "$GITHUB_OUTPUT"
             echo "eb_environment=${{ vars.EB_ENVIRONMENT_STAGING }}" >> "$GITHUB_OUTPUT"
             echo "frontend_bucket=${{ vars.FRONTEND_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
             echo "cloudfront_distribution_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}" >> "$GITHUB_OUTPUT"
@@ -118,15 +116,6 @@ jobs:
         env:
           IMAGE_NAME: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
         run: mvn -B -DskipTests jib:build
-
-      - name: Tag image alias
-        env:
-          IMAGE_SHA: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          IMAGE_ALIAS: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.env.outputs.image_alias }}
-        run: |
-          docker pull "$IMAGE_SHA"
-          docker tag "$IMAGE_SHA" "$IMAGE_ALIAS"
-          docker push "$IMAGE_ALIAS"
 
       - name: Create Elastic Beanstalk application version
         id: eb_version
