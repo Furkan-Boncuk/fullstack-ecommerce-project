@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { useInitPayment } from '../../api/mutations/useInitPayment';
+import { useOrders } from '../../api/queries/useOrders';
 import { usePaymentStatus } from '../../api/queries/usePaymentStatus';
 import { PaymentResultView } from '../../views/payment/PaymentResultView';
 
@@ -21,6 +22,11 @@ export function PaymentResultContainer() {
   }, [searchParams]);
   const status = searchParams.get('status') ?? undefined;
   const paymentStatusQuery = usePaymentStatus(orderId);
+  const ordersQuery = useOrders();
+  const order = useMemo(
+    () => ordersQuery.data?.find((item) => item.id === orderId),
+    [orderId, ordersQuery.data]
+  );
 
   const retry = () => {
     if (!orderId) {
@@ -47,9 +53,10 @@ export function PaymentResultContainer() {
       orderId={orderId}
       callbackStatus={status}
       paymentStatus={paymentStatusQuery.data}
-      isLoading={paymentStatusQuery.isLoading}
+      order={order}
+      isLoading={paymentStatusQuery.isLoading || ordersQuery.isLoading}
       isRetrying={initPaymentMutation.isPending}
-      errorMessage={paymentStatusQuery.isError ? 'Ödeme durumu yüklenirken bir hata oluştu.' : undefined}
+      errorMessage={paymentStatusQuery.isError || ordersQuery.isError ? 'Ödeme sonucu yüklenirken bir hata oluştu.' : undefined}
       onRetry={retry}
     />
   );

@@ -1,4 +1,5 @@
 import { Badge, Box, Button, Divider, HStack, Image, Stack, Text } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 import { formatPrice } from '../../helpers/formatPrice';
 import { orderStatusColor, orderStatusLabel } from '../../helpers/orderStatus';
 import { Order } from '../../types/order';
@@ -27,7 +28,18 @@ export function OrderCard({ order, isPaying, onPay }: OrderCardProps) {
         <Divider borderColor="purple.100" />
         <Stack spacing={3}>
           {order.items.map((item) => (
-            <HStack key={`${order.id}-${item.productId}`} spacing={3} align="center">
+            <HStack
+              key={`${order.id}-${item.productId}`}
+              as={RouterLink}
+              to={`/products/${item.productId}`}
+              spacing={3}
+              align="center"
+              borderRadius="lg"
+              p={2}
+              mx={-2}
+              transition="all .16s ease"
+              _hover={{ bg: 'purple.50', transform: 'translateY(-1px)' }}
+            >
               <Image src={item.productImageUrl} alt={item.productName} boxSize="54px" objectFit="cover" borderRadius="md" fallbackSrc="https://placehold.co/120x120/f6f1ff/6536ab?text=E" />
               <Stack spacing={0} flex="1">
                 <Text color="gray.900" fontWeight="800">{item.productName}</Text>

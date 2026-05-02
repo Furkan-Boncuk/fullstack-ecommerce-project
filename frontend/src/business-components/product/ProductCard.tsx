@@ -56,7 +56,7 @@ export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: 
         </Badge>
       ) : null}
 
-      <AspectRatio ratio={4 / 3} bg="brand.50">
+      <AspectRatio as={RouterLink} to={`/products/${product.id}`} ratio={4 / 3} bg="brand.50" display="block">
         <Image src={product.imageUrl} alt={product.name} objectFit="cover" fallbackSrc="https://placehold.co/640x480/f6f1ff/6536ab?text=Ecommerce" />
       </AspectRatio>
 
@@ -70,7 +70,7 @@ export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: 
           </Badge>
         </HStack>
 
-        <Stack spacing={2} flex="1">
+        <Stack as={RouterLink} to={`/products/${product.id}`} spacing={2} flex="1">
           <Heading as="h3" size="sm" color="gray.900" noOfLines={2} lineHeight="1.35">
             {product.name}
           </Heading>
