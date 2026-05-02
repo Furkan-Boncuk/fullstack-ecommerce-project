@@ -3,6 +3,7 @@
 .idea/
 backend/target/
 backend/.agent-skills/
+backend/.env*
 
 *.log
 .env

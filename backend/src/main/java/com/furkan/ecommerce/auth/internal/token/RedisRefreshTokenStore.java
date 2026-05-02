@@ -3,17 +3,25 @@ package com.furkan.ecommerce.auth.internal.token;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class RedisRefreshTokenStore implements RefreshTokenStore {
     private static final String PREFIX = "auth:refresh:user:";
     private static final String INDEX_PREFIX = "auth:refresh:index:";
 
     private final StringRedisTemplate redis;
+    private final String keyPrefix;
+
+    public RedisRefreshTokenStore(
+            StringRedisTemplate redis,
+            @Value("${app.redis.key-prefix:}") String keyPrefix
+    ) {
+        this.redis = redis;
+        this.keyPrefix = keyPrefix == null ? "" : keyPrefix;
+    }
 
     @Override
     public void save(Long userId, String tokenHash, String jti, Instant expiresAt) {
@@ -59,11 +67,11 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
         redis.delete(userKey(userId));
     }
 
-    private String userKey(Long userId) {
-        return PREFIX + userId;
+    String userKey(Long userId) {
+        return keyPrefix + PREFIX + userId;
     }
 
-    private String indexKey(String hash) {
-        return INDEX_PREFIX + hash;
+    String indexKey(String hash) {
+        return keyPrefix + INDEX_PREFIX + hash;
     }
 }

@@ -1,0 +1,272 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ecommerce-backend
+  EB_APPLICATION_NAME: ecommerce-backend
+  EB_HEALTHCHECK_PATH: /actuator/health
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Start timer
+        id: timer
+        run: echo "started_at=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select environment
+        id: env
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "name=production" >> "$GITHUB_OUTPUT"
+            echo "spring_profile=prod" >> "$GITHUB_OUTPUT"
+            echo "image_alias=prod-latest" >> "$GITHUB_OUTPUT"
+            echo "eb_environment=${{ vars.EB_ENVIRONMENT_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "frontend_bucket=${{ vars.FRONTEND_BUCKET_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "cloudfront_distribution_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=${{ vars.VITE_API_BASE_URL_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "app_url=${{ vars.FRONTEND_URL_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=staging" >> "$GITHUB_OUTPUT"
+            echo "spring_profile=staging" >> "$GITHUB_OUTPUT"
+            echo "image_alias=staging-latest" >> "$GITHUB_OUTPUT"
+            echo "eb_environment=${{ vars.EB_ENVIRONMENT_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "frontend_bucket=${{ vars.FRONTEND_BUCKET_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "cloudfront_distribution_id=${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=${{ vars.VITE_API_BASE_URL_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "app_url=${{ vars.FRONTEND_URL_STAGING }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate deployment variables
+        shell: bash
+        run: |
+          required_values=(
+            "${{ vars.EB_DEPLOY_BUCKET }}"
+            "${{ steps.env.outputs.eb_environment }}"
+            "${{ steps.env.outputs.frontend_bucket }}"
+            "${{ steps.env.outputs.cloudfront_distribution_id }}"
+            "${{ steps.env.outputs.api_base_url }}"
+            "${{ steps.env.outputs.app_url }}"
+          )
+          for value in "${required_values[@]}"; do
+            if [ -z "$value" ]; then
+              echo "A required GitHub repository variable is missing for ${{ steps.env.outputs.name }}."
+              exit 1
+            fi
+          done
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Test backend
+        run: mvn -f backend/pom.xml test
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
+        env:
+          VITE_API_BASE_URL: ${{ steps.env.outputs.api_base_url }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-session-name: ecommerce-deploy-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image with Jib
+        working-directory: backend
+        env:
+          IMAGE_NAME: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: mvn -B -DskipTests jib:build
+
+      - name: Tag image alias
+        env:
+          IMAGE_SHA: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          IMAGE_ALIAS: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.env.outputs.image_alias }}
+        run: |
+          docker pull "$IMAGE_SHA"
+          docker tag "$IMAGE_SHA" "$IMAGE_ALIAS"
+          docker push "$IMAGE_ALIAS"
+
+      - name: Create Elastic Beanstalk application version
+        id: eb_version
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          VERSION_LABEL: ${{ steps.env.outputs.name }}-${{ github.sha }}
+          S3_BUCKET: ${{ vars.EB_DEPLOY_BUCKET }}
+          S3_KEY: elasticbeanstalk/${{ steps.env.outputs.name }}/${{ github.sha }}.zip
+        run: |
+          sed "s#__IMAGE_URI__#$IMAGE_URI#g" deployment/Dockerrun.aws.json.template > Dockerrun.aws.json
+          zip -q eb-source.zip Dockerrun.aws.json
+          aws s3 cp eb-source.zip "s3://$S3_BUCKET/$S3_KEY"
+          aws elasticbeanstalk create-application-version \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --version-label "$VERSION_LABEL" \
+            --source-bundle S3Bucket="$S3_BUCKET",S3Key="$S3_KEY"
+          echo "version_label=$VERSION_LABEL" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Elastic Beanstalk environment
+        run: |
+          aws elasticbeanstalk update-environment \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --environment-name "${{ steps.env.outputs.eb_environment }}" \
+            --option-settings \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SPRING_PROFILES_ACTIVE,Value=${{ steps.env.outputs.spring_profile }}" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SERVER_PORT,Value=8080" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=REFRESH_COOKIE_SECURE,Value=true" \
+              "Namespace=aws:elasticbeanstalk:application:environment,OptionName=REDIS_KEY_PREFIX,Value=${{ steps.env.outputs.name }}:" \
+              "Namespace=aws:elasticbeanstalk:environment:process:default,OptionName=HealthCheckPath,Value=${{ env.EB_HEALTHCHECK_PATH }}"
+          aws elasticbeanstalk wait environment-updated \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --environment-names "${{ steps.env.outputs.eb_environment }}"
+
+      - name: Deploy backend to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk update-environment \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --environment-name "${{ steps.env.outputs.eb_environment }}" \
+            --version-label "${{ steps.eb_version.outputs.version_label }}"
+          aws elasticbeanstalk wait environment-updated \
+            --application-name "${{ env.EB_APPLICATION_NAME }}" \
+            --environment-names "${{ steps.env.outputs.eb_environment }}"
+
+      - name: Deploy frontend to S3
+        run: aws s3 sync frontend/dist "s3://${{ steps.env.outputs.frontend_bucket }}" --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.env.outputs.cloudfront_distribution_id }}" \
+            --paths "/*"
+
+      - name: Finish timer
+        id: duration
+        if: always()
+        run: |
+          finished_at=$(date +%s)
+          echo "seconds=$((finished_at - ${{ steps.timer.outputs.started_at }}))" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare Slack payload
+        if: always()
+        env:
+          DEPLOY_STATUS: ${{ job.status }}
+          DEPLOY_ENVIRONMENT: ${{ steps.env.outputs.name }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+          DEPLOY_ACTOR: ${{ github.actor }}
+          DEPLOY_IMAGE_TAG: ${{ github.sha }}
+          DEPLOY_DURATION: ${{ steps.duration.outputs.seconds }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          APP_URL: ${{ steps.env.outputs.app_url }}
+        run: |
+          if [ "$DEPLOY_STATUS" = "success" ]; then
+            color="#2eb67d"
+            title="Deployment Successful"
+          else
+            color="#e01e5a"
+            title="Deployment Failed"
+          fi
+
+          commit_message="$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g')"
+
+          jq -n \
+            --arg text "Deploy $DEPLOY_STATUS: ecommerce $DEPLOY_ENVIRONMENT" \
+            --arg color "$color" \
+            --arg title "$title: ecommerce-$DEPLOY_ENVIRONMENT" \
+            --arg environment "$DEPLOY_ENVIRONMENT" \
+            --arg branch "$DEPLOY_BRANCH" \
+            --arg actor "$DEPLOY_ACTOR" \
+            --arg image "$DEPLOY_IMAGE_TAG" \
+            --arg duration "${DEPLOY_DURATION}s" \
+            --arg commit "$commit_message" \
+            --arg workflow_url "$WORKFLOW_URL" \
+            --arg app_url "$APP_URL" \
+            '{
+              text: $text,
+              attachments: [{
+                color: $color,
+                blocks: [
+                  {
+                    type: "header",
+                    text: {
+                      type: "plain_text",
+                      text: $title,
+                      emoji: true
+                    }
+                  },
+                  {
+                    type: "section",
+                    fields: [
+                      { type: "mrkdwn", text: ("*Environment:*\n" + $environment) },
+                      { type: "mrkdwn", text: ("*Branch:*\n" + $branch) },
+                      { type: "mrkdwn", text: ("*Actor:*\n" + $actor) },
+                      { type: "mrkdwn", text: ("*Image:*\n`" + $image + "`") },
+                      { type: "mrkdwn", text: ("*Duration:*\n" + $duration) },
+                      { type: "mrkdwn", text: ("*Commit:*\n" + $commit) }
+                    ]
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "Workflow logs" },
+                        url: $workflow_url
+                      },
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "Live app" },
+                        url: $app_url
+                      }
+                    ]
+                  }
+                ]
+              }]
+            }' > slack-payload.json
+
+      - name: Slack deploy notification
+        if: always()
+        uses: slackapi/slack-github-action@v3
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: slack-payload.json
