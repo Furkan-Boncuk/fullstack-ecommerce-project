@@ -26,6 +26,7 @@ export const router = createBrowserRouter([
       { path: 'register', element: <RegisterView /> }
     ]
   },
+  { path: '/payment/result', element: <PaymentResultContainer /> },
   {
     path: '/',
     element: (
@@ -39,7 +40,6 @@ export const router = createBrowserRouter([
       { path: 'products/:id', element: <ProductDetailContainer /> },
       { path: 'cart', element: <CartContainer /> },
       { path: 'checkout', element: <CheckoutContainer /> },
-      { path: 'payment/result', element: <PaymentResultContainer /> },
       { path: 'orders', element: <OrdersContainer /> }
     ]
   },

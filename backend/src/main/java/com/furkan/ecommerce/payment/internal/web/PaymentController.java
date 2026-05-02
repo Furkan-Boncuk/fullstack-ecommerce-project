@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
+@Slf4j
 class PaymentController {
     private final PaymentCommandService paymentCommandService;
     private final PaymentCallbackProperties properties;
@@ -57,11 +59,13 @@ class PaymentController {
 
     @PostMapping(value = "/callback", consumes = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Void> callbackJson(@Valid @RequestBody PaymentCallbackRequest request) {
+        log.info("Payment callback received contentType=json");
         return redirect(paymentCommandService.handleCallback(request.token()));
     }
 
     @PostMapping(value = "/callback", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     ResponseEntity<Void> callbackForm(@RequestParam String token) {
+        log.info("Payment callback received contentType=form");
         return redirect(paymentCommandService.handleCallback(token));
     }
 
@@ -84,6 +88,7 @@ class PaymentController {
                 .queryParam("status", result.status())
                 .build(true)
                 .toUri();
+        log.info("Payment callback redirect orderId={} status={} location={}", result.orderId(), result.status(), location);
         return ResponseEntity.status(HttpStatus.SEE_OTHER)
                 .header(HttpHeaders.LOCATION, location.toString())
                 .build();
