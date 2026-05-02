@@ -1,7 +1,7 @@
 package com.furkan.ecommerce.payment.internal.adapter;
 
-import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
+import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.payment.internal.PaymentCallbackProperties;
 import com.furkan.ecommerce.payment.internal.PaymentGateway;
 import com.iyzipay.Options;
@@ -30,48 +30,22 @@ public class IyzicoPaymentGateway implements PaymentGateway {
     private final PaymentCallbackProperties properties;
 
     @Override
-    public PaymentResult initCheckout(Long orderId, BigDecimal amount, AuthPaymentProfileView userProfile) {
+    public PaymentResult initCheckout(CheckoutRequest checkout) {
         Options options = options();
         CreateCheckoutFormInitializeRequest request = new CreateCheckoutFormInitializeRequest();
         request.setLocale(Locale.TR.getValue());
-        request.setConversationId(String.valueOf(orderId));
-        request.setPrice(amount);
-        request.setPaidPrice(amount);
+        request.setConversationId(checkout.attemptReference());
+        request.setPrice(checkout.amount());
+        request.setPaidPrice(checkout.amount());
         request.setCurrency(Currency.TRY.name());
-        request.setBasketId(String.valueOf(orderId));
+        request.setBasketId(String.valueOf(checkout.orderId()));
         request.setPaymentGroup(PaymentGroup.PRODUCT.name());
-        request.setCallbackUrl(properties.callbackUrl());
-
-        Buyer buyer = new Buyer();
-        buyer.setId(String.valueOf(userProfile.userId()));
-        buyer.setName(userProfile.firstName());
-        buyer.setSurname(userProfile.lastName());
-        buyer.setGsmNumber(userProfile.phoneNumber());
-        buyer.setEmail(userProfile.email());
-        buyer.setIdentityNumber(userProfile.identityNumber());
-        buyer.setIp("127.0.0.1");
-        buyer.setRegistrationAddress(userProfile.address());
-        buyer.setCity(userProfile.city());
-        buyer.setCountry(userProfile.country());
-        buyer.setZipCode(userProfile.zipCode());
-        request.setBuyer(buyer);
-
-        Address address = new Address();
-        address.setContactName(userProfile.firstName() + " " + userProfile.lastName());
-        address.setCity(userProfile.city());
-        address.setCountry(userProfile.country());
-        address.setAddress(userProfile.address());
-        address.setZipCode(userProfile.zipCode());
+        request.setCallbackUrl(checkout.callbackUrl());
+        request.setBuyer(toBuyer(checkout.userProfile(), checkout.customerIp()));
+        Address address = toAddress(checkout.userProfile());
         request.setBillingAddress(address);
         request.setShippingAddress(address);
-
-        BasketItem item = new BasketItem();
-        item.setId("order-" + orderId);
-        item.setName("Order #" + orderId);
-        item.setCategory1("Ecommerce");
-        item.setItemType(BasketItemType.PHYSICAL.name());
-        item.setPrice(amount);
-        request.setBasketItems(List.of(item));
+        request.setBasketItems(toBasketItems(checkout.lines()));
 
         CheckoutFormInitialize response = CheckoutFormInitialize.create(request, options);
         if (!Status.SUCCESS.getValue().equals(response.getStatus())) {
@@ -81,7 +55,8 @@ public class IyzicoPaymentGateway implements PaymentGateway {
                 "PAYMENT_PENDING_ACTION_REQUIRED",
                 response.getPaymentPageUrl(),
                 response.getToken(),
-                String.valueOf(orderId)
+                checkout.attemptReference(),
+                checkout.expiresAt()
         );
     }
 
@@ -97,7 +72,8 @@ public class IyzicoPaymentGateway implements PaymentGateway {
                     false,
                     response.getPaymentId(),
                     codeOrDefault(response.getErrorCode(), "IYZICO_CHECKOUT_VERIFY_FAILED"),
-                    response.getConversationId()
+                    response.getConversationId(),
+                    response.getPaidPrice()
             );
         }
 
@@ -106,8 +82,47 @@ public class IyzicoPaymentGateway implements PaymentGateway {
                 paid,
                 response.getPaymentId(),
                 paid ? null : codeOrDefault(response.getErrorCode(), "PAYMENT_DECLINED"),
-                response.getConversationId()
+                response.getConversationId(),
+                response.getPaidPrice()
         );
+    }
+
+    private Buyer toBuyer(AuthPaymentProfileView profile, String customerIp) {
+        Buyer buyer = new Buyer();
+        buyer.setId(String.valueOf(profile.userId()));
+        buyer.setName(profile.firstName());
+        buyer.setSurname(profile.lastName());
+        buyer.setGsmNumber(profile.phoneNumber());
+        buyer.setEmail(profile.email());
+        buyer.setIdentityNumber(profile.identityNumber());
+        buyer.setIp(isBlank(customerIp) ? "127.0.0.1" : customerIp);
+        buyer.setRegistrationAddress(profile.address());
+        buyer.setCity(profile.city());
+        buyer.setCountry(profile.country());
+        buyer.setZipCode(profile.zipCode());
+        return buyer;
+    }
+
+    private Address toAddress(AuthPaymentProfileView profile) {
+        Address address = new Address();
+        address.setContactName(profile.firstName() + " " + profile.lastName());
+        address.setCity(profile.city());
+        address.setCountry(profile.country());
+        address.setAddress(profile.address());
+        address.setZipCode(profile.zipCode());
+        return address;
+    }
+
+    private List<BasketItem> toBasketItems(List<CheckoutLine> lines) {
+        return lines.stream().map(line -> {
+            BasketItem item = new BasketItem();
+            item.setId(String.valueOf(line.productId()));
+            item.setName(line.productName());
+            item.setCategory1("Ecommerce");
+            item.setItemType(BasketItemType.PHYSICAL.name());
+            item.setPrice(line.lineTotal());
+            return item;
+        }).toList();
     }
 
     private Options options() {

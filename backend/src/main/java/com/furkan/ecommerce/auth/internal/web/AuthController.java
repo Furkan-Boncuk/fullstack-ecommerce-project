@@ -1,5 +1,6 @@
 package com.furkan.ecommerce.auth.internal.web;
 
+import com.furkan.ecommerce.auth.api.AuthReadApi;
 import com.furkan.ecommerce.auth.api.dto.AuthResponse;
 import com.furkan.ecommerce.auth.api.dto.LoginRequest;
 import com.furkan.ecommerce.auth.api.dto.RegisterRequest;
@@ -10,6 +11,7 @@ import com.furkan.ecommerce.auth.internal.application.AuthTokenResult;
 import com.furkan.ecommerce.auth.internal.config.AuthCookieProperties;
 import com.furkan.ecommerce.auth.internal.exception.AuthException;
 import com.furkan.ecommerce.auth.internal.mapper.AuthMapper;
+import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.common.exception.UnauthorizedException;
 import com.furkan.ecommerce.infrastructure.security.SecurityPrincipal;
 import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
@@ -21,6 +23,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthCommandService service;
+    private final AuthReadApi readApi;
     private final AuthMapper mapper;
     private final JwtProperties jwtProperties;
     private final AuthCookieProperties cookieProperties;
@@ -64,6 +68,16 @@ public class AuthController {
                 .maxAge(0)
                 .build();
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+    }
+
+
+    @GetMapping("/profile/payment")
+    ResponseEntity<AuthPaymentProfileView> getPaymentProfile(@AuthenticationPrincipal SecurityPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+        return ResponseEntity.ok(readApi.findPaymentProfileById(principal.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found")));
     }
 
     @PatchMapping("/profile/payment")

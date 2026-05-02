@@ -6,7 +6,9 @@ import { RegisterView } from '../views/auth/RegisterView';
 import { CartContainer } from '../containers/cart/CartContainer';
 import { ProductDetailContainer } from '../containers/product/ProductDetailContainer';
 import { ProductListContainer } from '../containers/product/ProductListContainer';
-import { CheckoutView } from '../views/checkout/CheckoutView';
+import { CheckoutContainer } from '../containers/checkout/CheckoutContainer';
+import { OrdersContainer } from '../containers/order/OrdersContainer';
+import { PaymentResultContainer } from '../containers/payment/PaymentResultContainer';
 import { useAuthStore } from '../store/authStore';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -35,7 +37,9 @@ export const router = createBrowserRouter([
       { path: 'products', element: <ProductListContainer /> },
       { path: 'products/:id', element: <ProductDetailContainer /> },
       { path: 'cart', element: <CartContainer /> },
-      { path: 'checkout', element: <CheckoutView /> }
+      { path: 'checkout', element: <CheckoutContainer /> },
+      { path: 'payment/result', element: <PaymentResultContainer /> },
+      { path: 'orders', element: <OrdersContainer /> }
     ]
   },
   { path: '*', element: <Navigate to="/auth/login" replace /> }

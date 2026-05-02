@@ -23,18 +23,18 @@ class PaymentStateMachineTest {
         Payment payment = Payment.initiate(1L, BigDecimal.TEN, "iyzico", "tx-1", null, null, "1");
         payment.markSucceeded("tx-1");
 
-        assertThatThrownBy(() -> payment.markFailed("tx-2"))
+        assertThatThrownBy(() -> payment.markFailed("tx-2", "DECLINED"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Successful payment cannot transition to failed");
     }
 
     @Test
-    void should_throw_when_mark_succeeded_after_failed() {
+    void should_throw_when_mark_succeeded_after_review() {
         Payment payment = Payment.initiate(1L, BigDecimal.TEN, "iyzico", "tx-1", null, null, "1");
-        payment.markFailed("tx-1");
+        payment.markRequiresReview("AMOUNT_MISMATCH");
 
         assertThatThrownBy(() -> payment.markSucceeded("tx-2"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Failed payment cannot transition to succeeded");
+                .hasMessageContaining("Payment in review cannot transition automatically");
     }
 }

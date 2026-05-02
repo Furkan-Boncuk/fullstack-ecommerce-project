@@ -1,5 +1,10 @@
 package com.furkan.ecommerce.order.internal.domain;
 
 public enum OrderStatus {
-    PENDING, PAID, FAILED, CANCELLED
+    PENDING,
+    PAYMENT_FAILED,
+    PAID,
+    EXPIRED,
+    CANCELLED,
+    REQUIRES_REVIEW
 }

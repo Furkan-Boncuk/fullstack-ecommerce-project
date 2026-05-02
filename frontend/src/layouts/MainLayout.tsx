@@ -50,6 +50,9 @@ export function MainLayout() {
             <Button as={RouterLink} to="/products" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">
               Ürünler
             </Button>
+            <Button as={RouterLink} to="/orders" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">
+              Siparişlerim
+            </Button>
             <Spacer />
             <Box position="relative">
               <IconButton

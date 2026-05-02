@@ -24,19 +24,30 @@ class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private Long productId;
 
+    @Column(nullable = false, length = 255)
+    private String productName;
+
+    @Column(length = 500)
+    private String productImageUrl;
+
     @Column(nullable = false)
     private Integer quantity;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal unitPrice;
 
-    static OrderItem of(Order order, Long productId, Integer quantity, BigDecimal unitPrice) {
+    static OrderItem of(Order order, Long productId, String productName, String productImageUrl, Integer quantity, BigDecimal unitPrice) {
         OrderItem item = new OrderItem();
         item.order = order;
         item.productId = productId;
+        item.productName = productName;
+        item.productImageUrl = productImageUrl;
         item.quantity = quantity;
         item.unitPrice = unitPrice;
         return item;
     }
-}
 
+    BigDecimal lineTotal() {
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+}

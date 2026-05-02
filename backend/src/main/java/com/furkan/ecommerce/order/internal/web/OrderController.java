@@ -1,5 +1,6 @@
 package com.furkan.ecommerce.order.internal.web;
 
+import com.furkan.ecommerce.common.exception.UnauthorizedException;
 import com.furkan.ecommerce.infrastructure.security.SecurityPrincipal;
 import com.furkan.ecommerce.order.api.dto.OrderView;
 import com.furkan.ecommerce.order.internal.application.OrderCommandService;
@@ -14,16 +15,22 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
-public class OrderController {
+class OrderController {
     private final OrderCommandService service;
 
     @PostMapping
     OrderView create(@AuthenticationPrincipal SecurityPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
         return service.createOrder(principal.userId());
     }
 
     @GetMapping
     List<OrderView> list(@AuthenticationPrincipal SecurityPrincipal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
         return service.list(principal.userId());
     }
 }

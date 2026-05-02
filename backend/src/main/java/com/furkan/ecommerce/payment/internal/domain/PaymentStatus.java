@@ -2,6 +2,8 @@ package com.furkan.ecommerce.payment.internal;
 
 public enum PaymentStatus {
     INITIATED,
+    ACTION_REQUIRED,
     SUCCEEDED,
-    FAILED
+    FAILED,
+    REQUIRES_REVIEW
 }

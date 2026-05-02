@@ -41,7 +41,9 @@ app:
       encryption-key: ${PII_ENCRYPTION_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
   payment:
     callback-url: ${PAYMENT_CALLBACK_URL:https://example-ngrok-domain.ngrok-free.app/api/v1/payments/callback}
+    frontend-result-url: ${PAYMENT_FRONTEND_RESULT_URL:http://localhost:5173/payment/result}
     provider: ${PAYMENT_PROVIDER:iyzico}
+    attempt-ttl: PT30M
     iyzico:
       api-key: ${IYZICO_API_KEY:}
       secret-key: ${IYZICO_SECRET_KEY:}

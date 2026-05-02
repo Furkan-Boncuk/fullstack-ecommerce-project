@@ -28,12 +28,22 @@ class OrderReadService implements OrderReadApi {
 
     @Override
     public Optional<OrderPaymentView> findPaymentViewById(Long orderId) {
-        return orderRepository.findById(orderId)
+        return orderRepository.findWithItemsById(orderId)
                 .map(order -> new OrderPaymentView(
                         order.getId(),
                         order.getUserId(),
                         order.getStatus().name(),
-                        order.getTotalAmount()
+                        order.getTotalAmount(),
+                        order.getExpiresAt(),
+                        order.lineViews().stream()
+                                .map(line -> new OrderPaymentView.OrderPaymentLineView(
+                                        line.productId(),
+                                        line.productName(),
+                                        line.productImageUrl(),
+                                        line.unitPrice(),
+                                        line.quantity()
+                                ))
+                                .toList()
                 ));
     }
 }

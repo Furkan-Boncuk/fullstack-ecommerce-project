@@ -4,7 +4,7 @@ import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.common.outbox.ProcessedEvent;
 import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.api.OrderReadApi;
-import com.furkan.ecommerce.payment.api.event.PaymentFailedEvent;
+import com.furkan.ecommerce.order.api.event.OrderExpiredEvent;
 import com.furkan.ecommerce.payment.api.event.PaymentSucceededEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 class ProductPaymentEventHandler {
     private static final String SUCCESS_CONSUMER = "product-stock-commit";
-    private static final String FAILED_CONSUMER = "product-stock-release";
+    private static final String EXPIRED_CONSUMER = "product-stock-release-on-order-expired";
 
     private final OrderReadApi orderReadApi;
     private final ProductRepository productRepository;
@@ -39,8 +39,8 @@ class ProductPaymentEventHandler {
 
     @EventListener
     @Transactional
-    public void on(PaymentFailedEvent event) {
-        if (isDuplicate(FAILED_CONSUMER, event.eventId())) {
+    public void on(OrderExpiredEvent event) {
+        if (isDuplicate(EXPIRED_CONSUMER, event.eventId())) {
             return;
         }
         var order = orderReadApi.findInventoryViewById(event.orderId())
