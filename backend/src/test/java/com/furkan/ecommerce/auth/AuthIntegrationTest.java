@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +15,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import jakarta.servlet.http.Cookie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -27,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuthIntegrationTest {
 
     @Container
@@ -71,7 +75,7 @@ class AuthIntegrationTest {
         assertThat(firstCookie).isNotBlank();
 
         var refreshResponse = mockMvc.perform(post("/api/v1/auth/refresh")
-                        .header(HttpHeaders.COOKIE, firstCookie))
+                        .cookie(refreshCookieFrom(firstCookie)))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -80,7 +84,7 @@ class AuthIntegrationTest {
         assertThat(rotatedCookie).isNotEqualTo(firstCookie);
 
         mockMvc.perform(post("/api/v1/auth/refresh")
-                        .header(HttpHeaders.COOKIE, firstCookie))
+                        .cookie(refreshCookieFrom(firstCookie)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -102,11 +106,11 @@ class AuthIntegrationTest {
         String cookie = registerResponse.getResponse().getHeader(HttpHeaders.SET_COOKIE);
 
         mockMvc.perform(post("/api/v1/auth/logout")
-                        .header(HttpHeaders.COOKIE, cookie))
+                        .cookie(refreshCookieFrom(cookie)))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post("/api/v1/auth/refresh")
-                        .header(HttpHeaders.COOKIE, cookie))
+                        .cookie(refreshCookieFrom(cookie)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -129,8 +133,26 @@ class AuthIntegrationTest {
 
         await().atMost(ofSeconds(20)).untilAsserted(() ->
                 mockMvc.perform(post("/api/v1/auth/refresh")
-                                .header(HttpHeaders.COOKIE, cookie))
+                                .cookie(refreshCookieFrom(cookie)))
                         .andExpect(status().isUnauthorized())
         );
+    }
+
+    private Cookie refreshCookieFrom(String setCookie) {
+        assertThat(setCookie).isNotBlank();
+
+        String cookieName = "refresh_token";
+        String cookiePrefix = cookieName + "=";
+        int valueStart = setCookie.indexOf(cookiePrefix);
+        assertThat(valueStart).isGreaterThanOrEqualTo(0);
+        valueStart += cookiePrefix.length();
+
+        int valueEnd = setCookie.indexOf(';', valueStart);
+        String value = valueEnd == -1 ? setCookie.substring(valueStart) : setCookie.substring(valueStart, valueEnd);
+        assertThat(value).isNotBlank();
+
+        Cookie cookie = new Cookie(cookieName, value);
+        cookie.setPath("/api/v1/auth");
+        return cookie;
     }
 }
