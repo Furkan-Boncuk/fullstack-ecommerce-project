@@ -70,24 +70,30 @@ public class PaymentCommandService {
         Long attemptId = preparation.attemptId();
         String attemptReference = preparation.attemptReference();
         Instant attemptExpiresAt = preparation.expiresAt();
-        PaymentGateway.PaymentResult gatewayResult = gateway.initCheckout(new PaymentGateway.CheckoutRequest(
-                order.orderId(),
-                attemptReference,
-                order.totalAmount(),
-                order.items().stream()
-                        .map(line -> new PaymentGateway.CheckoutLine(
-                                line.productId(),
-                                line.productName(),
-                                line.productImageUrl(),
-                                line.unitPrice(),
-                                line.quantity()
-                        ))
-                        .toList(),
-                userProfile,
-                customerIp,
-                callbackProperties.callbackUrl(),
-                attemptExpiresAt
-        ));
+        PaymentGateway.PaymentResult gatewayResult;
+        try {
+            gatewayResult = gateway.initCheckout(new PaymentGateway.CheckoutRequest(
+                    order.orderId(),
+                    attemptReference,
+                    order.totalAmount(),
+                    order.items().stream()
+                            .map(line -> new PaymentGateway.CheckoutLine(
+                                    line.productId(),
+                                    line.productName(),
+                                    line.productImageUrl(),
+                                    line.unitPrice(),
+                                    line.quantity()
+                            ))
+                            .toList(),
+                    userProfile,
+                    customerIp,
+                    callbackProperties.callbackUrl(),
+                    attemptExpiresAt
+            ));
+        } catch (BusinessException ex) {
+            transactionTemplate.execute(status -> failInitAttempt(attemptId, ex.code()));
+            throw ex;
+        }
 
         return transactionTemplate.execute(status -> finalizeInit(attemptId, gatewayResult));
     }
@@ -97,7 +103,7 @@ public class PaymentCommandService {
             throw new BusinessException("PAYMENT_CALLBACK_TOKEN_MISSING", "Payment callback token is missing");
         }
         PaymentGateway.VerifyResult verifyResult = gateway.verifyCheckout(token);
-        Long orderId = parseOrderId(verifyResult.providerReference());
+        Long orderId = resolveCallbackOrderId(token, verifyResult.providerReference());
         OrderPaymentView order = orderReadApi.findPaymentViewById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("ORDER_NOT_FOUND", "Order not found"));
         return transactionTemplate.execute(status -> handleVerifiedCallback(token, verifyResult, order));
@@ -186,6 +192,14 @@ public class PaymentCommandService {
         attempt.markFailed(gatewayResult.transactionId(), gatewayResult.errorCode());
         payment.markFailed(gatewayResult.transactionId(), gatewayResult.errorCode());
         return PaymentGateway.PaymentResult.failure(gatewayResult.errorCode());
+    }
+
+    private Void failInitAttempt(Long attemptId, String errorCode) {
+        PaymentAttempt attempt = paymentAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("PAYMENT_ATTEMPT_NOT_FOUND", "Payment attempt not found"));
+        attempt.markFailed(null, errorCode);
+        attempt.getPayment().markFailed(null, errorCode);
+        return null;
     }
 
     private PaymentCallbackResult handleVerifiedCallback(String token, PaymentGateway.VerifyResult verifyResult, OrderPaymentView order) {
@@ -322,6 +336,20 @@ public class PaymentCommandService {
         } catch (NumberFormatException ex) {
             throw new BusinessException("PAYMENT_PROVIDER_REFERENCE_INVALID", "Invalid provider reference");
         }
+    }
+
+    private Long resolveCallbackOrderId(String token, String providerReference) {
+        if (!isBlank(providerReference)) {
+            try {
+                return parseOrderId(providerReference);
+            } catch (BusinessException ignored) {
+                // Some providers do not echo conversationId reliably on callback verification.
+            }
+        }
+
+        return paymentAttemptRepository.findByCheckoutToken(token)
+                .map(PaymentAttempt::getOrderId)
+                .orElseThrow(() -> new BusinessException("PAYMENT_PROVIDER_REFERENCE_INVALID", "Invalid provider reference"));
     }
 
     private void validatePaymentProfile(AuthPaymentProfileView profile) {

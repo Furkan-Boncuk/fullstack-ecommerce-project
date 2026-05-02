@@ -1,4 +1,20 @@
-import { Box, Button, Divider, Grid, Heading, HStack, Skeleton, Stack, Text } from '@chakra-ui/react';
+import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
+  Box,
+  Button,
+  Divider,
+  Grid,
+  Heading,
+  HStack,
+  Image,
+  Skeleton,
+  Stack,
+  Text
+} from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { PaymentProfileForm } from '../../business-components/checkout/PaymentProfileForm';
 import { ErrorMessage } from '../../components/feedback/ErrorMessage';
@@ -62,6 +78,56 @@ export function CheckoutView({
         <Heading color="gray.900" letterSpacing="-0.04em" size="lg">Ödeme</Heading>
         <Text color="gray.600" mt={2}>Sipariş oluşturulacak ve Iyzico güvenli ödeme sayfasına yönlendirileceksiniz.</Text>
       </Box>
+
+      <Accordion allowToggle defaultIndex={[0]} border="0">
+        <AccordionItem border="1px solid" borderColor="purple.100" borderRadius="xl" overflow="hidden" bg="purple.50">
+          <AccordionButton px={4} py={3} _hover={{ bg: 'purple.100' }}>
+            <HStack flex="1" justify="space-between" textAlign="left" spacing={4}>
+              <Box>
+                <Text color="gray.900" fontWeight="900">Sepet İçeriğim</Text>
+              </Box>
+              <Text color="brand.700" fontWeight="900" whiteSpace="nowrap">
+                {cart.items.length} ürün
+              </Text>
+            </HStack>
+            <AccordionIcon color="brand.700" ml={3} />
+          </AccordionButton>
+          <AccordionPanel bg="white" px={4} py={3}>
+            <Stack maxH="188px" overflowY="auto" spacing={3} pr={2}>
+              {cart.items.map((item) => (
+                <HStack
+                  key={item.productId}
+                  justify="space-between"
+                  align="center"
+                  border="1px solid"
+                  borderColor="purple.50"
+                  borderRadius="lg"
+                  px={3}
+                  py={2}
+                  minH="82px"
+                >
+                  <HStack minW={0} spacing={3}>
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.name}
+                      boxSize="58px"
+                      objectFit="cover"
+                      borderRadius="lg"
+                      bg="purple.50"
+                      flexShrink={0}
+                    />
+                    <Box minW={0}>
+                      <Text color="gray.900" fontWeight="800" noOfLines={1}>{item.name}</Text>
+                      <Text color="gray.500" fontSize="sm">Adet: {item.quantity}</Text>
+                    </Box>
+                  </HStack>
+                  <Text color="gray.900" fontWeight="900" whiteSpace="nowrap">{formatPrice(item.lineTotal)}</Text>
+                </HStack>
+              ))}
+            </Stack>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
 
       {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
 

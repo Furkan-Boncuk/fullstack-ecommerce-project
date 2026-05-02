@@ -9,6 +9,7 @@ import { useCart } from '../../api/queries/useCart';
 import { usePaymentProfile } from '../../api/queries/usePaymentProfile';
 import { useTurkeyCities } from '../../api/queries/useTurkeyCities';
 import { TURKEY_COUNTRY_VALUE } from '../../constants/location';
+import { Cart } from '../../types/cart';
 import { City } from '../../types/location';
 import { UpdatePaymentProfileRequest } from '../../types/paymentProfile';
 import { CheckoutView } from '../../views/checkout/CheckoutView';
@@ -47,6 +48,8 @@ export function CheckoutContainer() {
   const createOrderMutation = useCreateOrder();
   const initPaymentMutation = useInitPayment();
   const [profileValues, setProfileValues] = useState<UpdatePaymentProfileRequest>(emptyProfile);
+  const [checkoutOrderId, setCheckoutOrderId] = useState<number>();
+  const [checkoutCart, setCheckoutCart] = useState<Cart>();
 
   useEffect(() => {
     const cities = turkeyCitiesQuery.data ?? [];
@@ -64,6 +67,12 @@ export function CheckoutContainer() {
       }, cities));
     }
   }, [profileQuery.data, turkeyCitiesQuery.data]);
+
+  useEffect(() => {
+    if (!checkoutOrderId && cartQuery.data && cartQuery.data.items.length > 0) {
+      setCheckoutCart(cartQuery.data);
+    }
+  }, [cartQuery.data, checkoutOrderId]);
 
   const updateField = (field: keyof UpdatePaymentProfileRequest, value: string) => {
     if (field === 'country') {
@@ -83,8 +92,9 @@ export function CheckoutContainer() {
   const pay = async () => {
     try {
       await updateProfileMutation.mutateAsync(normalizePaymentProfile(profileValues, turkeyCitiesQuery.data ?? []));
-      const order = await createOrderMutation.mutateAsync();
-      const payment = await initPaymentMutation.mutateAsync({ orderId: order.id });
+      const orderId = checkoutOrderId ?? (await createOrderMutation.mutateAsync()).id;
+      setCheckoutOrderId(orderId);
+      const payment = await initPaymentMutation.mutateAsync({ orderId });
 
       if (payment.checkoutUrl) {
         window.location.assign(payment.checkoutUrl);
@@ -92,7 +102,7 @@ export function CheckoutContainer() {
       }
 
       if (payment.success) {
-        navigate(`/payment/result?orderId=${order.id}&status=success`);
+        navigate(`/payment/result?orderId=${orderId}&status=success`);
         return;
       }
 
@@ -104,7 +114,7 @@ export function CheckoutContainer() {
 
   return (
     <CheckoutView
-      cart={cartQuery.data}
+      cart={checkoutCart ?? cartQuery.data}
       profileValues={profileValues}
       cities={turkeyCitiesQuery.data ?? []}
       isLoading={cartQuery.isLoading || profileQuery.isLoading || turkeyCitiesQuery.isLoading}
