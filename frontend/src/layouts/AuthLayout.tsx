@@ -1,9 +1,16 @@
 import { Box, Container, Flex, Heading, HStack, Link, Text } from '@chakra-ui/react';
-import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
+import { Link as RouterLink, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 export function AuthLayout() {
   const location = useLocation();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLogin = location.pathname.includes('/login');
+  const from = (location.state as { from?: Location } | null)?.from;
+
+  if (isAuthenticated) {
+    return <Navigate to={`${from?.pathname ?? '/'}${from?.search ?? ''}`} replace />;
+  }
 
   return (
     <Box minH="100vh" bg="#f7f5fc">

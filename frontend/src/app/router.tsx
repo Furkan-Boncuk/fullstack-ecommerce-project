@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter, useLocation } from 'react-router-dom';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { LoginView } from '../views/auth/LoginView';
@@ -13,7 +13,8 @@ import { useAuthStore } from '../store/authStore';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? children : <Navigate to="/auth/login" replace />;
+  const location = useLocation();
+  return isAuthenticated ? children : <Navigate to="/auth/login" replace state={{ from: location }} />;
 }
 
 export const router = createBrowserRouter([
