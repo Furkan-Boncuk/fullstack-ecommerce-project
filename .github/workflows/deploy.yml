@@ -19,7 +19,7 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: ecommerce-backend
   EB_APPLICATION_NAME: ecommerce-backend
-  EB_HEALTHCHECK_PATH: /actuator/health
+  EB_HEALTHCHECK_PATH: /actuator/health/liveness
 
 jobs:
   deploy:
@@ -147,20 +147,61 @@ jobs:
           echo "version_label=$VERSION_LABEL" >> "$GITHUB_OUTPUT"
 
       - name: Deploy backend to Elastic Beanstalk
+        env:
+          EB_ENVIRONMENT_NAME: ${{ steps.env.outputs.eb_environment }}
+          EB_VERSION_LABEL: ${{ steps.eb_version.outputs.version_label }}
         run: |
           aws elasticbeanstalk update-environment \
             --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --environment-name "${{ steps.env.outputs.eb_environment }}" \
-            --version-label "${{ steps.eb_version.outputs.version_label }}" \
+            --environment-name "$EB_ENVIRONMENT_NAME" \
+            --version-label "$EB_VERSION_LABEL" \
             --option-settings \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SPRING_PROFILES_ACTIVE,Value=${{ steps.env.outputs.spring_profile }}" \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=SERVER_PORT,Value=8080" \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=REFRESH_COOKIE_SECURE,Value=true" \
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=REDIS_KEY_PREFIX,Value=${{ steps.env.outputs.name }}:" \
               "Namespace=aws:elasticbeanstalk:environment:process:default,OptionName=HealthCheckPath,Value=${{ env.EB_HEALTHCHECK_PATH }}"
-          aws elasticbeanstalk wait environment-updated \
-            --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --environment-names "${{ steps.env.outputs.eb_environment }}"
+
+          deadline=$((SECONDS + 1800))
+          while true; do
+            environment="$(aws elasticbeanstalk describe-environments \
+              --application-name "${{ env.EB_APPLICATION_NAME }}" \
+              --environment-names "$EB_ENVIRONMENT_NAME" \
+              --query "Environments[0].{Status:Status,Health:Health,VersionLabel:VersionLabel}" \
+              --output json)"
+            status="$(jq -r '.Status' <<< "$environment")"
+            health="$(jq -r '.Health' <<< "$environment")"
+            deployed_version="$(jq -r '.VersionLabel' <<< "$environment")"
+
+            echo "Elastic Beanstalk status=$status health=$health version=$deployed_version"
+
+            if [ "$status" = "Ready" ] && [ "$deployed_version" = "$EB_VERSION_LABEL" ]; then
+              break
+            fi
+
+            if [ "$status" = "Terminated" ] || [ "$status" = "Terminating" ]; then
+              echo "Elastic Beanstalk environment entered terminal status: $status"
+              aws elasticbeanstalk describe-events \
+                --application-name "${{ env.EB_APPLICATION_NAME }}" \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --max-records 25
+              exit 1
+            fi
+
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "Timed out waiting for Elastic Beanstalk deployment."
+              aws elasticbeanstalk describe-events \
+                --application-name "${{ env.EB_APPLICATION_NAME }}" \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --max-records 25
+              aws elasticbeanstalk describe-environment-health \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --attribute-names All || true
+              exit 1
+            fi
+
+            sleep 20
+          done
 
       - name: Deploy frontend to S3
         run: aws s3 sync frontend/dist "s3://${{ steps.env.outputs.frontend_bucket }}" --delete
