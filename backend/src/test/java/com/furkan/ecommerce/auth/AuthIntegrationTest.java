@@ -21,6 +21,7 @@ import jakarta.servlet.http.Cookie;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static java.time.Duration.ofSeconds;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -50,6 +51,16 @@ class AuthIntegrationTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Test
+    void should_return_problem_json_for_unauthenticated_protected_endpoint() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/profile/payment")
+                        .accept(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PROBLEM_JSON_VALUE)))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.path").value("/api/v1/auth/profile/payment"));
+    }
 
     @Test
     void should_rotate_refresh_token_and_reject_old_token() throws Exception {

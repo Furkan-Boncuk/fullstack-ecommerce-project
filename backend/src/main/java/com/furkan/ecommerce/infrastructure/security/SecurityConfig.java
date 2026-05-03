@@ -25,11 +25,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableConfigurationProperties({JwtProperties.class, AuthCookieProperties.class, PaymentCallbackProperties.class, PiiEncryptionProperties.class, CorsProperties.class})
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtFilter,
+            SecurityProblemHandler securityProblemHandler
+    ) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(securityProblemHandler)
+                        .accessDeniedHandler(securityProblemHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/actuator/health/**").permitAll()
