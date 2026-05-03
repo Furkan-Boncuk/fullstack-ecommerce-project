@@ -2,7 +2,6 @@ package com.furkan.ecommerce.payment.internal.web;
 
 import com.furkan.ecommerce.common.exception.UnauthorizedException;
 import com.furkan.ecommerce.infrastructure.security.SecurityPrincipal;
-import com.furkan.ecommerce.payment.api.dto.PaymentCallbackRequest;
 import com.furkan.ecommerce.payment.api.dto.PaymentInitRequest;
 import com.furkan.ecommerce.payment.api.dto.PaymentInitResponse;
 import com.furkan.ecommerce.payment.api.dto.PaymentStatusResponse;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,15 +55,9 @@ class PaymentController {
         return paymentCommandService.getStatus(principal.userId(), orderId);
     }
 
-    @PostMapping(value = "/callback", consumes = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Void> callbackJson(@Valid @RequestBody PaymentCallbackRequest request) {
-        log.info("Payment callback received contentType=json");
-        return redirect(paymentCommandService.handleCallback(request.token()));
-    }
-
-    @PostMapping(value = "/callback", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    ResponseEntity<Void> callbackForm(@RequestParam String token) {
-        log.info("Payment callback received contentType=form");
+    @PostMapping("/callback")
+    ResponseEntity<Void> callback(@RequestParam String token, HttpServletRequest request) {
+        log.info("Payment callback received contentType={}", request.getContentType());
         return redirect(paymentCommandService.handleCallback(token));
     }
 

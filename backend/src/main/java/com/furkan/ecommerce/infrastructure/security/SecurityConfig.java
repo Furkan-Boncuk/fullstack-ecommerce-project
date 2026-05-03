@@ -52,6 +52,13 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration paymentCallbackConfiguration = new CorsConfiguration();
+        paymentCallbackConfiguration.setAllowedOriginPatterns(List.of("https://*.iyzipay.com"));
+        paymentCallbackConfiguration.setAllowedMethods(List.of("POST", "OPTIONS"));
+        paymentCallbackConfiguration.setAllowedHeaders(List.of("*"));
+        paymentCallbackConfiguration.setAllowCredentials(false);
+        paymentCallbackConfiguration.setMaxAge(3600L);
+        source.registerCorsConfiguration("/api/v1/payments/callback", paymentCallbackConfiguration);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
