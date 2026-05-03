@@ -102,7 +102,7 @@ export function CheckoutContainer() {
       }
 
       if (payment.success) {
-        navigate(`/payment/result?orderId=${orderId}&status=success`);
+        navigate(`/payment/result?orderId=${orderId}`);
         return;
       }
 

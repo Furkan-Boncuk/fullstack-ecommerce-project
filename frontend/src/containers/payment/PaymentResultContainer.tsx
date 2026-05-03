@@ -20,7 +20,6 @@ export function PaymentResultContainer() {
     const parsed = Number(raw);
     return Number.isFinite(parsed) ? parsed : undefined;
   }, [searchParams]);
-  const status = searchParams.get('status') ?? undefined;
   const paymentStatusQuery = usePaymentStatus(orderId);
   const ordersQuery = useOrders();
   const order = useMemo(
@@ -51,7 +50,6 @@ export function PaymentResultContainer() {
   return (
     <PaymentResultView
       orderId={orderId}
-      callbackStatus={status}
       paymentStatus={paymentStatusQuery.data}
       order={order}
       isLoading={paymentStatusQuery.isLoading || ordersQuery.isLoading}

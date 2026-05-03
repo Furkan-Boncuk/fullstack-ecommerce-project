@@ -77,7 +77,6 @@ class PaymentController {
     private ResponseEntity<Void> redirect(PaymentCommandService.PaymentCallbackResult result) {
         URI location = UriComponentsBuilder.fromUriString(properties.frontendResultUrl())
                 .queryParam("orderId", result.orderId())
-                .queryParam("status", result.status())
                 .build(true)
                 .toUri();
         log.info("Payment callback redirect orderId={} status={} location={}", result.orderId(), result.status(), location);
