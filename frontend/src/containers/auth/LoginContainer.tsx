@@ -23,10 +23,13 @@ export function LoginContainer() {
   const setToken = useAuthStore((state) => state.setToken);
   const loginMutation = useLogin();
   const [values, setValues] = useState<AuthFormValues>({ email: '', password: '' });
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const errors = useMemo(() => validate(values), [values]);
+  const visibleErrors = hasSubmitted ? errors : {};
 
   const handleSubmit = () => {
+    setHasSubmitted(true);
     if (Object.keys(errors).length > 0) {
       toast.error('Lütfen form alanlarını düzeltin.');
       return;
@@ -51,7 +54,7 @@ export function LoginContainer() {
         title="Giriş Yap"
         submitLabel="Devam Et"
         values={values}
-        errors={errors}
+        errors={visibleErrors}
         loading={loginMutation.isPending}
         onEmailChange={(email) => setValues((prev) => ({ ...prev, email }))}
         onPasswordChange={(password) => setValues((prev) => ({ ...prev, password }))}

@@ -90,10 +90,8 @@ export function PaymentResultView({ orderId, paymentStatus, order, isLoading, is
           <Divider borderColor="purple.100" />
 
           <Stack spacing={2}>
-            <Text color="gray.700"><b>Ödeme durumu:</b> {paymentStatus?.paymentStatus ?? '-'}</Text>
-            {paymentStatus?.latestAttemptStatus ? <Text color="gray.700"><b>Son deneme:</b> {paymentStatus.latestAttemptStatus}</Text> : null}
-            {order?.createdAt ? <Text color="gray.700"><b>Sipariş tarihi:</b> {new Date(order.createdAt).toLocaleString('tr-TR')}</Text> : null}
-            {paymentStatus?.errorCode ? <Text color="red.600"><b>Hata:</b> {paymentStatus.errorCode}</Text> : null}
+            {order?.createdAt ? <Text color="gray.700"><b>İşlem tarihi:</b> {new Date(order.createdAt).toLocaleString('tr-TR')}</Text> : null}
+            {state !== 'success' && paymentStatus?.errorCode ? <Text color="red.600"><b>Hata:</b> {paymentStatus.errorCode}</Text> : null}
           </Stack>
         </Stack>
       </Box>

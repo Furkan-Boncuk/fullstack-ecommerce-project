@@ -10,11 +10,13 @@ interface PaymentProfileFormProps {
   cities: City[];
   isCityLoading: boolean;
   isSaving: boolean;
+  showCancel: boolean;
   onChange: (field: keyof UpdatePaymentProfileRequest, value: string) => void;
   onSubmit: () => void;
+  onCancel: () => void;
 }
 
-export function PaymentProfileForm({ values, cities, isCityLoading, isSaving, onChange, onSubmit }: PaymentProfileFormProps) {
+export function PaymentProfileForm({ values, cities, isCityLoading, isSaving, showCancel, onChange, onSubmit, onCancel }: PaymentProfileFormProps) {
   return (
     <Stack spacing={4}>
       <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
@@ -87,9 +89,16 @@ export function PaymentProfileForm({ values, cities, isCityLoading, isSaving, on
         <AppInput name="zipCode" label="Posta Kodu" value={values.zipCode} onChange={(value) => onChange('zipCode', value)} />
       </Grid>
       <AppInput name="address" label="Adres" value={values.address} onChange={(value) => onChange('address', value)} />
-      <Button colorScheme="brand" borderRadius="full" alignSelf="start" isLoading={isSaving} onClick={onSubmit}>
-        Ödeme Bilgilerini Kaydet
-      </Button>
+      <Stack direction={{ base: 'column', sm: 'row' }} spacing={3} align="start">
+        <Button colorScheme="brand" borderRadius="full" isLoading={isSaving} onClick={onSubmit}>
+          Ödeme Bilgilerini Kaydet
+        </Button>
+        {showCancel ? (
+          <Button variant="outline" colorScheme="brand" borderRadius="full" isDisabled={isSaving} onClick={onCancel}>
+            Vazgeç
+          </Button>
+        ) : null}
+      </Stack>
     </Stack>
   );
 }

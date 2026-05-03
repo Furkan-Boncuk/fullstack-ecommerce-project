@@ -4,13 +4,14 @@ import {
   Heading,
   SimpleGrid,
   Skeleton,
+  Spinner,
   Stack,
   Text
 } from '@chakra-ui/react';
 import { ErrorMessage } from '../../components/feedback/ErrorMessage';
 import { ProductCard } from '../../business-components/product/ProductCard';
 import { ProductFilters, ProductFilterValues } from '../../business-components/product/ProductFilters';
-import { ProductPagination } from '../../business-components/product/ProductPagination';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { Category } from '../../types/category';
 import { Product } from '../../types/product';
 
@@ -19,18 +20,18 @@ interface ProductListViewProps {
   categories: Category[];
   isCategoryLoading: boolean;
   products: Product[];
-  page: number;
-  totalPages: number;
   totalElements: number;
-  isLast: boolean;
+  hasNextPage: boolean;
   isLoading: boolean;
   isFetching: boolean;
+  isFetchingNextPage: boolean;
   addingProductId?: number;
-  cartProductIds: Set<number>;
+  cartProductQuantities: Map<number, number>;
   errorMessage?: string;
   onFiltersChange: (values: ProductFilterValues) => void;
+  onFiltersSubmit: () => void;
   onFiltersClear: () => void;
-  onPageChange: (page: number) => void;
+  onLoadMore: () => void;
   onAddToCart: (productId: number) => void;
 }
 
@@ -39,21 +40,25 @@ export function ProductListView({
   categories,
   isCategoryLoading,
   products,
-  page,
-  totalPages,
   totalElements,
-  isLast,
+  hasNextPage,
   isLoading,
   isFetching,
+  isFetchingNextPage,
   addingProductId,
-  cartProductIds,
+  cartProductQuantities,
   errorMessage,
   onFiltersChange,
+  onFiltersSubmit,
   onFiltersClear,
-  onPageChange,
+  onLoadMore,
   onAddToCart
 }: ProductListViewProps) {
   const hasProducts = products.length > 0;
+  const loadMoreRef = useInfiniteScroll({
+    enabled: hasNextPage && !isLoading && !isFetchingNextPage,
+    onLoadMore
+  });
 
   return (
     <Stack spacing={6}>
@@ -77,6 +82,7 @@ export function ProductListView({
           categories={categories}
           isCategoryLoading={isCategoryLoading}
           onChange={onFiltersChange}
+          onSubmit={onFiltersSubmit}
           onClear={onFiltersClear}
         />
       </Box>
@@ -103,19 +109,32 @@ export function ProductListView({
       ) : null}
 
       {!isLoading && hasProducts ? (
-        <Stack spacing={6} opacity={isFetching ? 0.72 : 1} transition="opacity .18s ease">
+        <Stack spacing={6} opacity={isFetching && !isFetchingNextPage ? 0.72 : 1} transition="opacity .18s ease">
           <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} spacing={5}>
             {products.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 isAddingToCart={addingProductId === product.id}
-                isInCart={cartProductIds.has(product.id)}
+                cartQuantity={cartProductQuantities.get(product.id) ?? 0}
                 onAddToCart={onAddToCart}
               />
             ))}
           </SimpleGrid>
-          <ProductPagination page={page} totalPages={totalPages} isLast={isLast} onPageChange={onPageChange} />
+
+          <Box ref={loadMoreRef} minH="52px" display="flex" alignItems="center" justifyContent="center">
+            {isFetchingNextPage ? (
+              <HStack color="brand.700" fontWeight="800">
+                <Spinner size="sm" />
+                <Text>Daha fazla ürün yükleniyor</Text>
+              </HStack>
+            ) : null}
+            {!hasNextPage && hasProducts ? (
+              <Text color="gray.500" fontSize="sm">
+                Tüm ürünler gösterildi.
+              </Text>
+            ) : null}
+          </Box>
         </Stack>
       ) : null}
     </Stack>

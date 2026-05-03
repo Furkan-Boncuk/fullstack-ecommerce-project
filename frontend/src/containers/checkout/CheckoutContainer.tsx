@@ -11,7 +11,7 @@ import { useTurkeyCities } from '../../api/queries/useTurkeyCities';
 import { TURKEY_COUNTRY_VALUE } from '../../constants/location';
 import { Cart } from '../../types/cart';
 import { City } from '../../types/location';
-import { UpdatePaymentProfileRequest } from '../../types/paymentProfile';
+import { PaymentProfile, UpdatePaymentProfileRequest } from '../../types/paymentProfile';
 import { CheckoutView } from '../../views/checkout/CheckoutView';
 
 const emptyProfile: UpdatePaymentProfileRequest = {
@@ -39,6 +39,36 @@ function normalizePaymentProfile(profile: UpdatePaymentProfileRequest, cities: C
   };
 }
 
+function toProfileValues(profile: PaymentProfile, cities: City[]): UpdatePaymentProfileRequest {
+  return normalizePaymentProfile({
+    firstName: profile.firstName ?? '',
+    lastName: profile.lastName ?? '',
+    phoneNumber: profile.phoneNumber ?? '',
+    identityNumber: profile.identityNumber ?? '',
+    address: profile.address ?? '',
+    city: profile.city ?? '',
+    country: TURKEY_COUNTRY_VALUE,
+    zipCode: profile.zipCode ?? ''
+  }, cities);
+}
+
+function isCompletePaymentProfile(profile?: PaymentProfile) {
+  if (!profile) {
+    return false;
+  }
+
+  return [
+    profile.firstName,
+    profile.lastName,
+    profile.phoneNumber,
+    profile.identityNumber,
+    profile.address,
+    profile.city,
+    profile.country,
+    profile.zipCode
+  ].every((value) => Boolean(value?.trim()));
+}
+
 export function CheckoutContainer() {
   const navigate = useNavigate();
   const cartQuery = useCart();
@@ -48,23 +78,18 @@ export function CheckoutContainer() {
   const createOrderMutation = useCreateOrder();
   const initPaymentMutation = useInitPayment();
   const [profileValues, setProfileValues] = useState<UpdatePaymentProfileRequest>(emptyProfile);
+  const [isEditingProfile, setIsEditingProfile] = useState(true);
   const [checkoutOrderId, setCheckoutOrderId] = useState<number>();
   const [checkoutCart, setCheckoutCart] = useState<Cart>();
+  const savedProfile = profileQuery.data;
+  const hasSavedCompleteProfile = isCompletePaymentProfile(savedProfile);
 
   useEffect(() => {
     const cities = turkeyCitiesQuery.data ?? [];
 
     if (profileQuery.data && cities.length > 0) {
-      setProfileValues(normalizePaymentProfile({
-        firstName: profileQuery.data.firstName ?? '',
-        lastName: profileQuery.data.lastName ?? '',
-        phoneNumber: profileQuery.data.phoneNumber ?? '',
-        identityNumber: profileQuery.data.identityNumber ?? '',
-        address: profileQuery.data.address ?? '',
-        city: profileQuery.data.city ?? '',
-        country: TURKEY_COUNTRY_VALUE,
-        zipCode: profileQuery.data.zipCode ?? ''
-      }, cities));
+      setProfileValues(toProfileValues(profileQuery.data, cities));
+      setIsEditingProfile(!isCompletePaymentProfile(profileQuery.data));
     }
   }, [profileQuery.data, turkeyCitiesQuery.data]);
 
@@ -84,14 +109,32 @@ export function CheckoutContainer() {
 
   const saveProfile = () => {
     updateProfileMutation.mutate(normalizePaymentProfile(profileValues, turkeyCitiesQuery.data ?? []), {
-      onSuccess: () => toast.success('Ödeme bilgileri kaydedildi.'),
+      onSuccess: () => {
+        setIsEditingProfile(false);
+        toast.success('Ödeme bilgileri kaydedildi.');
+      },
       onError: (error) => toast.error(getErrorMessage(error, 'Ödeme bilgileri kaydedilemedi.'))
     });
   };
 
+  const editProfile = () => {
+    setIsEditingProfile(true);
+  };
+
+  const cancelProfileEdit = () => {
+    if (savedProfile) {
+      setProfileValues(toProfileValues(savedProfile, turkeyCitiesQuery.data ?? []));
+    }
+    setIsEditingProfile(false);
+  };
+
   const pay = async () => {
+    if (!hasSavedCompleteProfile || isEditingProfile) {
+      toast.error('Ödeme yapmadan önce ödeme bilgilerini kaydedin.');
+      return;
+    }
+
     try {
-      await updateProfileMutation.mutateAsync(normalizePaymentProfile(profileValues, turkeyCitiesQuery.data ?? []));
       const orderId = checkoutOrderId ?? (await createOrderMutation.mutateAsync()).id;
       setCheckoutOrderId(orderId);
       const payment = await initPaymentMutation.mutateAsync({ orderId });
@@ -116,7 +159,10 @@ export function CheckoutContainer() {
     <CheckoutView
       cart={checkoutCart ?? cartQuery.data}
       profileValues={profileValues}
+      savedProfile={savedProfile}
       cities={turkeyCitiesQuery.data ?? []}
+      hasSavedCompleteProfile={hasSavedCompleteProfile}
+      isEditingProfile={isEditingProfile}
       isLoading={cartQuery.isLoading || profileQuery.isLoading || turkeyCitiesQuery.isLoading}
       isCityLoading={turkeyCitiesQuery.isLoading}
       isProfileSaving={updateProfileMutation.isPending}
@@ -124,6 +170,8 @@ export function CheckoutContainer() {
       errorMessage={cartQuery.isError || profileQuery.isError || turkeyCitiesQuery.isError ? 'Checkout bilgileri yüklenirken bir hata oluştu.' : undefined}
       onProfileChange={updateField}
       onProfileSubmit={saveProfile}
+      onProfileEdit={editProfile}
+      onProfileCancel={cancelProfileEdit}
       onPay={pay}
     />
   );

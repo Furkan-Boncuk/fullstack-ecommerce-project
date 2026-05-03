@@ -24,16 +24,26 @@ interface ProductFiltersProps {
   categories: Category[];
   isCategoryLoading: boolean;
   onChange: (values: ProductFilterValues) => void;
+  onSubmit: () => void;
   onClear: () => void;
 }
 
-export function ProductFilters({ values, categories, isCategoryLoading, onChange, onClear }: ProductFiltersProps) {
+export function ProductFilters({ values, categories, isCategoryLoading, onChange, onSubmit, onClear }: ProductFiltersProps) {
   const update = (nextValues: Partial<ProductFilterValues>) => {
     onChange({ ...values, ...nextValues });
   };
 
   return (
-    <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', xl: '2fr 1fr 1fr 1fr auto' }} gap={4} alignItems="end">
+    <Grid
+      as="form"
+      templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', xl: '2fr 1fr 1fr 1fr auto' }}
+      gap={4}
+      alignItems="end"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
       <GridItem>
         <FormControl>
           <FormLabel fontSize="sm" color="gray.700">
@@ -118,7 +128,7 @@ export function ProductFilters({ values, categories, isCategoryLoading, onChange
       </GridItem>
 
       <GridItem>
-        <HStack h="44px" spacing={4} align="center">
+        <HStack minH="44px" spacing={3} align="center" flexWrap="wrap">
           <Checkbox
             isChecked={values.inStock}
             onChange={(event) => update({ inStock: event.target.checked })}
@@ -127,7 +137,10 @@ export function ProductFilters({ values, categories, isCategoryLoading, onChange
           >
             Stokta olanlar
           </Checkbox>
-          <Button variant="ghost" colorScheme="brand" borderRadius="full" onClick={onClear}>
+          <Button type="submit" colorScheme="brand" borderRadius="full">
+            Filtrele
+          </Button>
+          <Button type="button" variant="ghost" colorScheme="brand" borderRadius="full" onClick={onClear}>
             Temizle
           </Button>
         </HStack>

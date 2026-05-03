@@ -18,15 +18,19 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { PaymentProfileForm } from '../../business-components/checkout/PaymentProfileForm';
 import { ErrorMessage } from '../../components/feedback/ErrorMessage';
+import { TURKEY_COUNTRY_LABEL } from '../../constants/location';
 import { formatPrice } from '../../helpers/formatPrice';
 import { Cart } from '../../types/cart';
 import { City } from '../../types/location';
-import { UpdatePaymentProfileRequest } from '../../types/paymentProfile';
+import { PaymentProfile, UpdatePaymentProfileRequest } from '../../types/paymentProfile';
 
 interface CheckoutViewProps {
   cart?: Cart;
   profileValues: UpdatePaymentProfileRequest;
+  savedProfile?: PaymentProfile;
   cities: City[];
+  hasSavedCompleteProfile: boolean;
+  isEditingProfile: boolean;
   isLoading: boolean;
   isCityLoading: boolean;
   isProfileSaving: boolean;
@@ -34,13 +38,18 @@ interface CheckoutViewProps {
   errorMessage?: string;
   onProfileChange: (field: keyof UpdatePaymentProfileRequest, value: string) => void;
   onProfileSubmit: () => void;
+  onProfileEdit: () => void;
+  onProfileCancel: () => void;
   onPay: () => void;
 }
 
 export function CheckoutView({
   cart,
   profileValues,
+  savedProfile,
   cities,
+  hasSavedCompleteProfile,
+  isEditingProfile,
   isLoading,
   isCityLoading,
   isProfileSaving,
@@ -48,10 +57,12 @@ export function CheckoutView({
   errorMessage,
   onProfileChange,
   onProfileSubmit,
+  onProfileEdit,
+  onProfileCancel,
   onPay
 }: CheckoutViewProps) {
   const isEmpty = !cart || cart.items.length === 0;
-  const isProfileComplete = Object.values(profileValues).every((value) => value.trim().length > 0);
+  const canPay = hasSavedCompleteProfile && !isEditingProfile;
 
   if (isLoading) {
     return (
@@ -138,14 +149,46 @@ export function CheckoutView({
               <Heading size="md" color="gray.900">Ödeme Bilgileri</Heading>
               <Text color="gray.600" mt={1}>Iyzico ödeme başlatmak için bu bilgiler eksiksiz olmalı.</Text>
             </Box>
-            <PaymentProfileForm
-              values={profileValues}
-              cities={cities}
-              isCityLoading={isCityLoading}
-              isSaving={isProfileSaving}
-              onChange={onProfileChange}
-              onSubmit={onProfileSubmit}
-            />
+            {isEditingProfile ? (
+              <PaymentProfileForm
+                values={profileValues}
+                cities={cities}
+                isCityLoading={isCityLoading}
+                isSaving={isProfileSaving}
+                showCancel={hasSavedCompleteProfile}
+                onChange={onProfileChange}
+                onSubmit={onProfileSubmit}
+                onCancel={onProfileCancel}
+              />
+            ) : (
+              <Stack spacing={4}>
+                <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4}>
+                  <Box bg="purple.50" borderRadius="lg" p={4}>
+                    <Text color="gray.500" fontSize="xs">Ad Soyad</Text>
+                    <Text color="gray.900" fontWeight="800">{savedProfile?.firstName} {savedProfile?.lastName}</Text>
+                  </Box>
+                  <Box bg="purple.50" borderRadius="lg" p={4}>
+                    <Text color="gray.500" fontSize="xs">Telefon</Text>
+                    <Text color="gray.900" fontWeight="800">{savedProfile?.phoneNumber}</Text>
+                  </Box>
+                  <Box bg="purple.50" borderRadius="lg" p={4}>
+                    <Text color="gray.500" fontSize="xs">Şehir / Ülke</Text>
+                    <Text color="gray.900" fontWeight="800">{savedProfile?.city}, {TURKEY_COUNTRY_LABEL}</Text>
+                  </Box>
+                  <Box bg="purple.50" borderRadius="lg" p={4}>
+                    <Text color="gray.500" fontSize="xs">Posta Kodu</Text>
+                    <Text color="gray.900" fontWeight="800">{savedProfile?.zipCode}</Text>
+                  </Box>
+                </Grid>
+                <Box bg="purple.50" borderRadius="lg" p={4}>
+                  <Text color="gray.500" fontSize="xs">Adres</Text>
+                  <Text color="gray.900" fontWeight="800">{savedProfile?.address}</Text>
+                </Box>
+                <Button colorScheme="brand" variant="outline" borderRadius="full" alignSelf="start" onClick={onProfileEdit}>
+                  Düzenle
+                </Button>
+              </Stack>
+            )}
           </Stack>
         </Box>
 
@@ -168,10 +211,11 @@ export function CheckoutView({
               <Text color="gray.600">Toplam</Text>
               <Text color="brand.700" fontSize="2xl" fontWeight="900">{formatPrice(cart.summary.subtotal)}</Text>
             </HStack>
-            <Button colorScheme="brand" borderRadius="full" h="48px" isLoading={isPaying} isDisabled={!isProfileComplete} onClick={onPay}>
+            <Button colorScheme="brand" borderRadius="full" h="48px" isLoading={isPaying} isDisabled={!canPay} onClick={onPay}>
               Iyzico ile Öde
             </Button>
-            {!isProfileComplete ? <Text color="red.500" fontSize="sm">Ödemeye geçmek için ödeme bilgilerini doldurun.</Text> : null}
+            {!hasSavedCompleteProfile ? <Text color="red.500" fontSize="sm">Ödemeye geçmek için önce ödeme bilgilerini kaydedin.</Text> : null}
+            {hasSavedCompleteProfile && isEditingProfile ? <Text color="orange.600" fontSize="sm">Ödeme yapmadan önce değişiklikleri kaydedin veya vazgeçin.</Text> : null}
           </Stack>
         </Box>
       </Grid>

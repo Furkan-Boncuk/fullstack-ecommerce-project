@@ -44,7 +44,7 @@ export function MainLayout() {
       <Box bg="white" borderBottom="1px solid" borderColor="purple.100">
         <Container maxW="container.xl" py={4}>
           <Flex align="center" gap={4}>
-            <Heading size="md" color="brand.700" letterSpacing="-0.02em">
+            <Heading as={RouterLink} to="/" size="md" color="brand.700" letterSpacing="-0.02em">
               Ecommerce
             </Heading>
             <Button as={RouterLink} to="/products" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">

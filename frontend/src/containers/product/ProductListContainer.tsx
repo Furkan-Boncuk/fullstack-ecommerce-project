@@ -1,11 +1,11 @@
 import { AxiosError } from 'axios';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { useAddToCart } from '../../api/mutations/useAddToCart';
 import { useCart } from '../../api/queries/useCart';
 import { useCategories } from '../../api/queries/useCategories';
-import { useProducts } from '../../api/queries/useProducts';
+import { useInfiniteProducts } from '../../api/queries/useInfiniteProducts';
 import { ProductFilterValues } from '../../business-components/product/ProductFilters';
 import { ProductFilterParams } from '../../types/product';
 import { ProductListView } from '../../views/product/ProductListView';
@@ -21,11 +21,6 @@ function getNumberParam(value: string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function getPageParam(value: string | null) {
-  const parsed = getNumberParam(value);
-  return parsed && parsed > 0 ? parsed : 0;
-}
-
 function getErrorMessage(error: unknown, fallback: string) {
   return (error as AxiosError<{ detail?: string }>).response?.data?.detail ?? fallback;
 }
@@ -35,7 +30,7 @@ export function ProductListContainer() {
   const addToCartMutation = useAddToCart();
   const cartQuery = useCart();
 
-  const filterValues: ProductFilterValues = useMemo(
+  const appliedFilters: ProductFilterValues = useMemo(
     () => ({
       search: searchParams.get('search') ?? '',
       categorySlug: searchParams.get('categorySlug') ?? '',
@@ -45,39 +40,47 @@ export function ProductListContainer() {
     }),
     [searchParams]
   );
+  const [draftFilters, setDraftFilters] = useState<ProductFilterValues>(appliedFilters);
 
-  const page = getPageParam(searchParams.get('page'));
   const size = getNumberParam(searchParams.get('size')) ?? defaultPageSize;
 
   const productParams: ProductFilterParams = useMemo(
     () => ({
-      search: filterValues.search.trim() || undefined,
-      categorySlug: filterValues.categorySlug || undefined,
-      minPrice: getNumberParam(filterValues.minPrice),
-      maxPrice: getNumberParam(filterValues.maxPrice),
-      inStock: filterValues.inStock ? true : undefined,
-      page,
+      search: appliedFilters.search.trim() || undefined,
+      categorySlug: appliedFilters.categorySlug || undefined,
+      minPrice: getNumberParam(appliedFilters.minPrice),
+      maxPrice: getNumberParam(appliedFilters.maxPrice),
+      inStock: appliedFilters.inStock ? true : undefined,
       size
     }),
-    [filterValues, page, size]
+    [appliedFilters, size]
   );
 
-  const productsQuery = useProducts(productParams);
+  const productsQuery = useInfiniteProducts(productParams);
   const categoriesQuery = useCategories();
-  const cartProductIds = useMemo(
-    () => new Set(cartQuery.data?.items.map((item) => item.productId) ?? []),
+  const products = useMemo(
+    () => productsQuery.data?.pages.flatMap((pageData) => pageData.content) ?? [],
+    [productsQuery.data?.pages]
+  );
+  const lastPage = productsQuery.data?.pages[productsQuery.data.pages.length - 1];
+  const cartProductQuantities = useMemo(
+    () => new Map(cartQuery.data?.items.map((item) => [item.productId, item.quantity]) ?? []),
     [cartQuery.data?.items]
   );
 
-  const updateFilters = (nextValues: ProductFilterValues) => {
+  useEffect(() => {
+    setDraftFilters(appliedFilters);
+  }, [appliedFilters]);
+
+  const submitFilters = () => {
     const nextParams = new URLSearchParams(searchParams);
 
     const entries: Array<[keyof ProductFilterValues, string | boolean]> = [
-      ['search', nextValues.search],
-      ['categorySlug', nextValues.categorySlug],
-      ['minPrice', nextValues.minPrice],
-      ['maxPrice', nextValues.maxPrice],
-      ['inStock', nextValues.inStock]
+      ['search', draftFilters.search],
+      ['categorySlug', draftFilters.categorySlug],
+      ['minPrice', draftFilters.minPrice],
+      ['maxPrice', draftFilters.maxPrice],
+      ['inStock', draftFilters.inStock]
     ];
 
     entries.forEach(([key, value]) => {
@@ -100,19 +103,10 @@ export function ProductListContainer() {
     setSearchParams(nextParams);
   };
 
-  const changePage = (nextPage: number) => {
-    const nextParams = new URLSearchParams(searchParams);
-    if (nextPage <= 0) {
-      nextParams.delete('page');
-    } else {
-      nextParams.set('page', String(nextPage));
-    }
-    setSearchParams(nextParams);
-  };
-
   const addToCart = (productId: number) => {
+    const currentQuantity = cartProductQuantities.get(productId) ?? 0;
     addToCartMutation.mutate(
-      { productId, quantity: 1 },
+      { productId, quantity: currentQuantity + 1 },
       {
         onSuccess: () => toast.success('Ürün sepete eklendi.'),
         onError: (error) => toast.error(getErrorMessage(error, 'Ürün sepete eklenemedi.'))
@@ -122,22 +116,26 @@ export function ProductListContainer() {
 
   return (
     <ProductListView
-      filters={filterValues}
+      filters={draftFilters}
       categories={categoriesQuery.data ?? []}
       isCategoryLoading={categoriesQuery.isLoading}
-      products={productsQuery.data?.content ?? []}
-      page={productsQuery.data?.page ?? page}
-      totalPages={productsQuery.data?.totalPages ?? 0}
-      totalElements={productsQuery.data?.totalElements ?? 0}
-      isLast={productsQuery.data?.last ?? true}
+      products={products}
+      totalElements={lastPage?.totalElements ?? 0}
+      hasNextPage={productsQuery.hasNextPage}
       isLoading={productsQuery.isLoading}
       isFetching={productsQuery.isFetching}
+      isFetchingNextPage={productsQuery.isFetchingNextPage}
       addingProductId={addToCartMutation.isPending ? addToCartMutation.variables?.productId : undefined}
-      cartProductIds={cartProductIds}
+      cartProductQuantities={cartProductQuantities}
       errorMessage={productsQuery.isError ? 'Ürünler yüklenirken bir hata oluştu.' : undefined}
-      onFiltersChange={updateFilters}
+      onFiltersChange={setDraftFilters}
+      onFiltersSubmit={submitFilters}
       onFiltersClear={clearFilters}
-      onPageChange={changePage}
+      onLoadMore={() => {
+        if (productsQuery.hasNextPage && !productsQuery.isFetchingNextPage) {
+          void productsQuery.fetchNextPage();
+        }
+      }}
       onAddToCart={addToCart}
     />
   );

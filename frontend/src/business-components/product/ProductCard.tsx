@@ -1,4 +1,4 @@
-import { ArrowForwardIcon, CheckIcon } from '@chakra-ui/icons';
+import { AddIcon, ArrowForwardIcon, CheckIcon } from '@chakra-ui/icons';
 import {
   AspectRatio,
   Badge,
@@ -6,6 +6,7 @@ import {
   Button,
   HStack,
   Heading,
+  IconButton,
   Image,
   Stack,
   Text
@@ -17,12 +18,14 @@ import { Product } from '../../types/product';
 interface ProductCardProps {
   product: Product;
   isAddingToCart: boolean;
-  isInCart: boolean;
+  cartQuantity: number;
   onAddToCart: (productId: number) => void;
 }
 
-export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, isAddingToCart, cartQuantity, onAddToCart }: ProductCardProps) {
   const hasStock = product.stock > 0;
+  const isInCart = cartQuantity > 0;
+  const reachedStockLimit = hasStock && cartQuantity >= product.stock;
 
   return (
     <Box
@@ -40,7 +43,7 @@ export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: 
         <Badge
           position="absolute"
           top={3}
-          right={3}
+          left={3}
           zIndex={1}
           colorScheme="purple"
           borderRadius="full"
@@ -52,9 +55,24 @@ export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: 
           gap={1}
           boxShadow="0 10px 22px rgba(56, 29, 92, 0.18)"
         >
-          <CheckIcon boxSize="10px" /> Sepette
+          <CheckIcon boxSize="10px" /> {cartQuantity} adet
         </Badge>
       ) : null}
+
+      <IconButton
+        position="absolute"
+        top={3}
+        right={3}
+        zIndex={2}
+        aria-label={isInCart ? 'Sepetteki ürün adedini artır' : 'Sepete ekle'}
+        icon={<AddIcon />}
+        colorScheme="brand"
+        borderRadius="full"
+        boxShadow="0 12px 28px rgba(56, 29, 92, 0.22)"
+        isDisabled={!hasStock || reachedStockLimit}
+        isLoading={isAddingToCart}
+        onClick={() => onAddToCart(product.id)}
+      />
 
       <AspectRatio as={RouterLink} to={`/products/${product.id}`} ratio={4 / 3} bg="brand.50" display="block">
         <Image src={product.imageUrl} alt={product.name} objectFit="cover" fallbackSrc="https://placehold.co/640x480/f6f1ff/6536ab?text=Ecommerce" />
@@ -102,16 +120,6 @@ export function ProductCard({ product, isAddingToCart, isInCart, onAddToCart }: 
             </Button>
           </HStack>
 
-          <Button
-            colorScheme="brand"
-            variant={isInCart ? 'outline' : 'solid'}
-            borderRadius="full"
-            isDisabled={!hasStock}
-            isLoading={isAddingToCart}
-            onClick={() => onAddToCart(product.id)}
-          >
-            {isInCart ? 'Sepette' : 'Sepete Ekle'}
-          </Button>
         </Stack>
       </Stack>
     </Box>
