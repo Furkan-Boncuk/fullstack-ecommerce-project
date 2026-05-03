@@ -20,7 +20,7 @@ function validate(values: AuthFormValues): Partial<AuthFormValues> {
 
 export function RegisterContainer() {
   const navigate = useNavigate();
-  const setToken = useAuthStore((state) => state.setToken);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const registerMutation = useRegister();
   const [values, setValues] = useState<AuthFormValues>({ email: '', password: '' });
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -37,7 +37,7 @@ export function RegisterContainer() {
 
     registerMutation.mutate(values, {
       onSuccess: (result) => {
-        setToken(result.accessToken);
+        setAuth(result.accessToken, result.user);
         toast.success('Kayıt başarılı.');
         navigate('/');
       },

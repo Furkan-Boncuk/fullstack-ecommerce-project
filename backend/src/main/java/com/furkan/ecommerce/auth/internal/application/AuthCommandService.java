@@ -51,7 +51,7 @@ public class AuthCommandService {
     @Transactional
     public AuthTokenResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new AuthException("Invalid credentials"));
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
         if (!encoder.matches(request.password(), user.getPasswordHash())) {
             throw new AuthException("Invalid credentials");
         }
@@ -129,7 +129,7 @@ public class AuthCommandService {
         Instant expiresAt = Instant.now().plus(jwtProperties.refreshTtl());
         refreshTokenStore.save(user.getId(), hash(rawRefresh), jti, expiresAt);
 
-        return new AuthTokenResult(access, "Bearer", jwtProperties.accessTtl().toSeconds(), rawRefresh);
+        return new AuthTokenResult(access, "Bearer", jwtProperties.accessTtl().toSeconds(), rawRefresh, authMapper.toPrincipalView(user));
     }
 
     private String hash(String value) {

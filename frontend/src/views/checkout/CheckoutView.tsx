@@ -147,7 +147,7 @@ export function CheckoutView({
           <Stack spacing={5}>
             <Box>
               <Heading size="md" color="gray.900">Ödeme Bilgileri</Heading>
-              <Text color="gray.600" mt={1}>Iyzico ödeme başlatmak için bu bilgiler eksiksiz olmalı.</Text>
+              <Text color="gray.600" mt={1}>Ödeme işlemini gerçekleştirebilmek için bu bilgiler eksiksiz olmalıdır.</Text>
             </Box>
             {isEditingProfile ? (
               <PaymentProfileForm

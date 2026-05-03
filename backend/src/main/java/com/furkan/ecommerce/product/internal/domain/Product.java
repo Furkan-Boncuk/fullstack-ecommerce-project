@@ -45,15 +45,37 @@ class Product extends BaseEntity {
     @Column(nullable = false)
     private boolean active;
 
-    static Product create(String name, BigDecimal price, Integer stock, Category category) {
+    static Product create(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
         Product p = new Product();
-        p.name = name;
-        p.price = price;
-        p.stock = stock;
-        p.category = category;
+        p.updateDetails(name, description, price, stock, imageUrl, category);
         p.reservedStock = 0;
         p.active = true;
         return p;
+    }
+
+    void updateDetails(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
+        if (name == null || name.isBlank()) {
+            throw new BusinessException("PRODUCT_NAME_REQUIRED", "Product name is required");
+        }
+        if (price == null || price.signum() <= 0) {
+            throw new BusinessException("INVALID_PRICE", "Product price must be greater than zero");
+        }
+        if (stock == null || stock < 0) {
+            throw new BusinessException("INVALID_STOCK", "Product stock cannot be negative");
+        }
+        if (category == null) {
+            throw new BusinessException("CATEGORY_NOT_FOUND", "Category not found");
+        }
+        this.name = name.trim();
+        this.description = normalize(description);
+        this.price = price;
+        this.stock = stock;
+        this.imageUrl = normalize(imageUrl);
+        this.category = category;
+    }
+
+    private String normalize(String value) {
+        return value == null ? null : value.trim();
     }
 
     void reserveStock(int qty) {

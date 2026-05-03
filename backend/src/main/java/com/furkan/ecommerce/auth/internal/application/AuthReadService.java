@@ -2,8 +2,11 @@ package com.furkan.ecommerce.auth.internal.application;
 
 import com.furkan.ecommerce.auth.api.AuthReadApi;
 import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
+import com.furkan.ecommerce.auth.api.dto.AuthUserSummaryView;
 import com.furkan.ecommerce.auth.internal.mapper.AuthMapper;
 import com.furkan.ecommerce.auth.internal.persistence.UserRepository;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,5 +23,24 @@ class AuthReadService implements AuthReadApi {
     public Optional<AuthPaymentProfileView> findPaymentProfileById(Long userId) {
         return userRepository.findById(userId).map(authMapper::toPaymentProfileView);
     }
-}
 
+    @Override
+    public List<AuthUserSummaryView> findUserSummariesByIds(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByIdIn(userIds).stream()
+                .map(user -> new AuthUserSummaryView(user.getId(), user.getEmail()))
+                .toList();
+    }
+
+    @Override
+    public List<Long> findUserIdsByEmailContaining(String email) {
+        if (email == null || email.isBlank()) {
+            return List.of();
+        }
+        return userRepository.findByEmailContainingIgnoreCase(email.trim()).stream()
+                .map(user -> user.getId())
+                .toList();
+    }
+}

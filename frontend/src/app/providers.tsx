@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/authStore';
 
 export function AppProviders() {
   const queryClient = useMemo(() => new QueryClient(), []);
-  const setToken = useAuthStore((state) => state.setToken);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const [ready, setReady] = useState(false);
 
@@ -18,14 +18,14 @@ export function AppProviders() {
     void (async () => {
       try {
         const refreshed = await authService.refresh();
-        setToken(refreshed.accessToken);
+        setAuth(refreshed.accessToken, refreshed.user);
       } catch {
         clearAuth();
       } finally {
         setReady(true);
       }
     })();
-  }, [setToken, clearAuth]);
+  }, [setAuth, clearAuth]);
 
   if (!ready) {
     return null;

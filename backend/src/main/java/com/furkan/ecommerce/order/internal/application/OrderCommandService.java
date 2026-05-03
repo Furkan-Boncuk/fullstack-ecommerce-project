@@ -1,6 +1,9 @@
 package com.furkan.ecommerce.order.internal.application;
 
 import com.furkan.ecommerce.cart.api.CartReadApi;
+import com.furkan.ecommerce.auth.api.AuthReadApi;
+import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
+import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.common.outbox.OutboxRecorder;
 import com.furkan.ecommerce.order.api.dto.OrderView;
@@ -23,6 +26,7 @@ public class OrderCommandService {
 
     private final OrderRepository orderRepository;
     private final CartReadApi cartReadApi;
+    private final AuthReadApi authReadApi;
     private final OutboxRecorder outboxRecorder;
 
     @Transactional
@@ -31,6 +35,9 @@ public class OrderCommandService {
         if (cart.items().isEmpty()) {
             throw new ResourceNotFoundException("CART_EMPTY", "Cart is empty");
         }
+        AuthPaymentProfileView profile = authReadApi.findPaymentProfileById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
+        validateShippingProfile(profile);
         Instant expiresAt = Instant.now().plus(PAYMENT_WINDOW);
         List<Order.OrderLineInput> lines = cart.items().stream()
                 .map(line -> new Order.OrderLineInput(
@@ -41,7 +48,7 @@ public class OrderCommandService {
                         line.unitPrice()
                 ))
                 .toList();
-        Order order = orderRepository.save(Order.create(userId, lines, expiresAt));
+        Order order = orderRepository.save(Order.create(userId, lines, shippingSnapshot(profile), expiresAt));
         List<OrderCreatedEvent.OrderItemSnapshot> items = cart.items().stream()
                 .map(line -> new OrderCreatedEvent.OrderItemSnapshot(line.productId(), line.quantity()))
                 .toList();
@@ -69,6 +76,7 @@ public class OrderCommandService {
                 order.getTotalAmount(),
                 order.getCreatedAt(),
                 order.getExpiresAt(),
+                shippingAddressView(order),
                 order.lineViews().stream()
                         .map(line -> new OrderView.OrderItemView(
                                 line.productId(),
@@ -80,5 +88,50 @@ public class OrderCommandService {
                         ))
                         .toList()
         );
+    }
+
+    private void validateShippingProfile(AuthPaymentProfileView profile) {
+        if (isBlank(profile.firstName())
+                || isBlank(profile.lastName())
+                || isBlank(profile.phoneNumber())
+                || isBlank(profile.address())
+                || isBlank(profile.city())
+                || isBlank(profile.country())
+                || isBlank(profile.zipCode())) {
+            throw new BusinessException("PAYMENT_PROFILE_INCOMPLETE", "Payment profile is incomplete");
+        }
+    }
+
+    private Order.ShippingSnapshot shippingSnapshot(AuthPaymentProfileView profile) {
+        return new Order.ShippingSnapshot(
+                profile.firstName(),
+                profile.lastName(),
+                profile.phoneNumber(),
+                profile.address(),
+                profile.city(),
+                profile.country(),
+                profile.zipCode()
+        );
+    }
+
+    private OrderView.ShippingAddressView shippingAddressView(Order order) {
+        if (isBlank(order.getShippingFirstName())
+                && isBlank(order.getShippingLastName())
+                && isBlank(order.getShippingAddress())) {
+            return null;
+        }
+        return new OrderView.ShippingAddressView(
+                order.getShippingFirstName(),
+                order.getShippingLastName(),
+                order.getShippingPhoneNumber(),
+                order.getShippingAddress(),
+                order.getShippingCity(),
+                order.getShippingCountry(),
+                order.getShippingZipCode()
+        );
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

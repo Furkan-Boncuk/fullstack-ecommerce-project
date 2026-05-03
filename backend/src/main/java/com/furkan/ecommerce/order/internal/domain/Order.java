@@ -2,8 +2,10 @@ package com.furkan.ecommerce.order.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
 import com.furkan.ecommerce.common.exception.BusinessException;
+import com.furkan.ecommerce.infrastructure.crypto.PiiStringAttributeConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -36,15 +38,48 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private Instant expiresAt;
 
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingFirstName;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingLastName;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingPhoneNumber;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingAddress;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingCity;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingCountry;
+
+    @Column(length = 512)
+    @Convert(converter = PiiStringAttributeConverter.class)
+    private String shippingZipCode;
+
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
     public static Order create(Long userId, List<OrderLineInput> lines, Instant expiresAt) {
+        return create(userId, lines, null, expiresAt);
+    }
+
+    public static Order create(Long userId, List<OrderLineInput> lines, ShippingSnapshot shippingSnapshot, Instant expiresAt) {
         if (lines == null || lines.isEmpty()) {
             throw new BusinessException("ORDER_LINES_EMPTY", "Order must contain at least one item");
         }
         Order order = new Order();
         order.userId = userId;
+        order.applyShippingSnapshot(shippingSnapshot);
         order.expiresAt = expiresAt;
         order.totalAmount = lines.stream()
                 .map(OrderLineInput::lineTotal)
@@ -59,6 +94,19 @@ public class Order extends BaseEntity {
                 line.unitPrice()
         )));
         return order;
+    }
+
+    private void applyShippingSnapshot(ShippingSnapshot snapshot) {
+        if (snapshot == null) {
+            return;
+        }
+        this.shippingFirstName = snapshot.firstName();
+        this.shippingLastName = snapshot.lastName();
+        this.shippingPhoneNumber = snapshot.phoneNumber();
+        this.shippingAddress = snapshot.address();
+        this.shippingCity = snapshot.city();
+        this.shippingCountry = snapshot.country();
+        this.shippingZipCode = snapshot.zipCode();
     }
 
     public TransitionResult markPaid() {
@@ -149,6 +197,16 @@ public class Order extends BaseEntity {
     }
 
     public record OrderLineSnapshot(Long productId, Integer quantity) {}
+
+    public record ShippingSnapshot(
+            String firstName,
+            String lastName,
+            String phoneNumber,
+            String address,
+            String city,
+            String country,
+            String zipCode
+    ) {}
 
     public record OrderLineView(
             Long productId,

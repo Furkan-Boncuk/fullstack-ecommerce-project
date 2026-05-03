@@ -20,7 +20,7 @@ function validate(values: AuthFormValues): Partial<AuthFormValues> {
 
 export function LoginContainer() {
   const navigate = useNavigate();
-  const setToken = useAuthStore((state) => state.setToken);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const loginMutation = useLogin();
   const [values, setValues] = useState<AuthFormValues>({ email: '', password: '' });
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -37,7 +37,7 @@ export function LoginContainer() {
 
     loginMutation.mutate(values, {
       onSuccess: (result) => {
-        setToken(result.accessToken);
+        setAuth(result.accessToken, result.user);
         toast.success('Giriş başarılı.');
         navigate('/');
       },

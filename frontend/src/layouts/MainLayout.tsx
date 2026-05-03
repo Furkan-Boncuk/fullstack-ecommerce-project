@@ -27,8 +27,10 @@ export function MainLayout() {
   const navigate = useNavigate();
   const logoutMutation = useLogout();
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const user = useAuthStore((state) => state.user);
   const cartQuery = useCart();
   const itemCount = cartQuery.data?.summary?.itemCount ?? 0;
+  const isAdmin = user?.roles?.includes('ADMIN') ?? false;
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -53,6 +55,11 @@ export function MainLayout() {
             <Button as={RouterLink} to="/orders" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">
               Siparişlerim
             </Button>
+            {isAdmin ? (
+              <Button as={RouterLink} to="/admin" size="sm" variant="ghost" colorScheme="brand" borderRadius="full">
+                Admin
+              </Button>
+            ) : null}
             <Spacer />
             <Box position="relative">
               <IconButton

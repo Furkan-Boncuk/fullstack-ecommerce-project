@@ -39,10 +39,10 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isRefreshRequest) {
       originalRequest._retry = true;
       try {
-        const refreshResponse = await refreshClient.post<{ accessToken: string }>('/api/v1/auth/refresh');
+        const refreshResponse = await refreshClient.post<{ accessToken: string; user: { id: number; email: string; roles: string[] } }>('/api/v1/auth/refresh');
         const newAccessToken = refreshResponse.data.accessToken;
 
-        useAuthStore.getState().setToken(newAccessToken);
+        useAuthStore.getState().setAuth(newAccessToken, refreshResponse.data.user);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch {

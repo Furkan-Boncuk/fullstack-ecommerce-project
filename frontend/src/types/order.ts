@@ -15,5 +15,16 @@ export interface Order {
   totalAmount: number;
   createdAt: string;
   expiresAt: string;
+  shippingAddress?: ShippingAddress | null;
   items: OrderItem[];
+}
+
+export interface ShippingAddress {
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  zipCode?: string | null;
 }
