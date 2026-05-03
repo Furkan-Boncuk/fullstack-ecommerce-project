@@ -67,9 +67,6 @@ export function ProductListView({
           <Heading color="gray.900" letterSpacing="-0.04em" size="lg">
             Ürünler
           </Heading>
-          <Text color="gray.600" mt={2}>
-            Listeleme, arama ve filtreleme akışı backend ürün servisi üzerinden çalışır.
-          </Text>
         </Box>
         <Text color="brand.700" fontWeight="800">
           {totalElements} ürün

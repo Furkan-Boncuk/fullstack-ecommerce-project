@@ -20,9 +20,9 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   const url = config.url ?? '';
-  const isRefreshRequest = url.includes('/api/v1/auth/refresh');
+  const isAuthRequest = url.includes('/api/v1/auth/');
 
-  if (token && !isRefreshRequest) {
+  if (token && !isAuthRequest) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -35,8 +35,9 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config as RetryableRequest | undefined;
     const requestUrl = originalRequest?.url ?? '';
     const isRefreshRequest = requestUrl.includes('/api/v1/auth/refresh');
+    const isAuthRequest = requestUrl.includes('/api/v1/auth/');
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isRefreshRequest) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRequest && !isRefreshRequest) {
       originalRequest._retry = true;
       try {
         const refreshResponse = await refreshClient.post<{ accessToken: string; user: { id: number; email: string; roles: string[] } }>('/api/v1/auth/refresh');
