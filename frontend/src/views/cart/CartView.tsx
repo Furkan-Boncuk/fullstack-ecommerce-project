@@ -24,9 +24,6 @@ export function CartView({ cart, isLoading, errorMessage, removingProductId, upd
         <Heading color="gray.900" letterSpacing="-0.04em" size="lg">
           Sepetim
         </Heading>
-        <Text color="gray.600" mt={2}>
-          Sepet ürünleri backend cart servisi üzerinden güncellenir.
-        </Text>
       </Box>
 
       {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
