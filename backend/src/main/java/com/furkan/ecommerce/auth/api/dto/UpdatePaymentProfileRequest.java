@@ -5,30 +5,29 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UpdatePaymentProfileRequest(
-        @NotBlank
-        @Size(max = 80)
+        @NotBlank(message = "{validation.required}")
+        @Size(max = 80, message = "{validation.size}")
         String firstName,
-        @NotBlank
-        @Size(max = 80)
+        @NotBlank(message = "{validation.required}")
+        @Size(max = 80, message = "{validation.size}")
         String lastName,
-        @NotBlank
-        @Pattern(regexp = "^\\+90\\d{10}$", message = "phoneNumber must be in +90XXXXXXXXXX format")
+        @NotBlank(message = "{validation.required}")
+        @Pattern(regexp = "^\\+90\\d{10}$", message = "{validation.phone}")
         String phoneNumber,
-        @NotBlank
-        @Pattern(regexp = "^\\d{11}$", message = "identityNumber must be 11 digits")
+        @NotBlank(message = "{validation.required}")
+        @Pattern(regexp = "^\\d{11}$", message = "{validation.identityNumber}")
         String identityNumber,
-        @NotBlank
-        @Pattern(regexp = "^\\S+(?:\\s+\\S+)+$", message = "address must contain at least two words")
-        @Size(max = 255)
+        @NotBlank(message = "{validation.required}")
+        @Pattern(regexp = "^\\S+(?:\\s+\\S+)+$", message = "{validation.address}")
+        @Size(max = 255, message = "{validation.size}")
         String address,
-        @NotBlank
-        @Size(max = 80)
+        @NotBlank(message = "{validation.required}")
+        @Size(max = 80, message = "{validation.size}")
         String city,
-        @NotBlank
-        @Size(max = 80)
+        @NotBlank(message = "{validation.required}")
+        @Size(max = 80, message = "{validation.size}")
         String country,
-        @NotBlank
-        @Pattern(regexp = "^\\d{5}$", message = "zipCode must be 5 digits")
+        @NotBlank(message = "{validation.required}")
+        @Pattern(regexp = "^\\d{5}$", message = "{validation.zipCode}")
         String zipCode
 ) {}
-

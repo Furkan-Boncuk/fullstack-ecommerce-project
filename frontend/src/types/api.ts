@@ -2,6 +2,11 @@ export interface ApiError {
   title: string;
   status: number;
   detail: string;
+  code?: string;
+  fieldErrors?: Array<{
+    field: string;
+    message: string;
+  }>;
 }
 
 export interface AuthResponse {
