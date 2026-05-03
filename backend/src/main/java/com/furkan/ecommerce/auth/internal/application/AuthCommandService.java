@@ -51,7 +51,7 @@ public class AuthCommandService {
     @Transactional
     public AuthTokenResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new AuthException("Invalid credentials"));
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
         if (!encoder.matches(request.password(), user.getPasswordHash())) {
             throw new AuthException("Invalid credentials");
         }

@@ -123,7 +123,7 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
                                   "password": "password123"
                                 }
                                 """))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isNotFound());
     }
 
     private Long createProduct(String name, BigDecimal price, int stock, boolean active) {
