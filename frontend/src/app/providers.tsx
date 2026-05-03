@@ -18,7 +18,7 @@ export function AppProviders() {
     void (async () => {
       try {
         const refreshed = await authService.refresh();
-        setAuth(refreshed.accessToken, refreshed.user);
+        setAuth(refreshed);
       } catch {
         clearAuth();
       } finally {

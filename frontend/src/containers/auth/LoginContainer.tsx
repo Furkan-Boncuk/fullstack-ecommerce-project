@@ -37,7 +37,7 @@ export function LoginContainer() {
 
     loginMutation.mutate(values, {
       onSuccess: (result) => {
-        setAuth(result.accessToken, result.user);
+        setAuth(result);
         toast.success('Giriş başarılı.');
         navigate('/');
       },

@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../../store/authStore';
+import { assertApiResponse, parseAuthResponse, postApi } from './apiClient';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
@@ -9,12 +10,18 @@ interface RetryableRequest extends InternalAxiosRequestConfig {
 
 const refreshClient = axios.create({
   baseURL: apiBaseUrl,
-  withCredentials: true
+  withCredentials: true,
+  headers: {
+    Accept: 'application/json'
+  }
 });
 
 export const axiosInstance = axios.create({
   baseURL: apiBaseUrl,
-  withCredentials: true
+  withCredentials: true,
+  headers: {
+    Accept: 'application/json'
+  }
 });
 
 axiosInstance.interceptors.request.use((config) => {
@@ -30,7 +37,10 @@ axiosInstance.interceptors.request.use((config) => {
 });
 
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    assertApiResponse(response);
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequest | undefined;
     const requestUrl = originalRequest?.url ?? '';
@@ -40,11 +50,10 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRequest && !isRefreshRequest) {
       originalRequest._retry = true;
       try {
-        const refreshResponse = await refreshClient.post<{ accessToken: string; user: { id: number; email: string; roles: string[] } }>('/api/v1/auth/refresh');
-        const newAccessToken = refreshResponse.data.accessToken;
+        const auth = await postApi(refreshClient, '/api/v1/auth/refresh', parseAuthResponse);
 
-        useAuthStore.getState().setAuth(newAccessToken, refreshResponse.data.user);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        useAuthStore.getState().setAuth(auth);
+        originalRequest.headers.Authorization = `Bearer ${auth.accessToken}`;
         return axiosInstance(originalRequest);
       } catch {
         useAuthStore.getState().clearAuth();

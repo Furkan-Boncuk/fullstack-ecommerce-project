@@ -1,12 +1,13 @@
 import { create } from 'zustand';
-import { AuthUser } from '../types/api';
+import { AuthResponse, AuthUser } from '../types/api';
+
+export type AuthSession = Pick<AuthResponse, 'accessToken' | 'user'>;
 
 interface AuthState {
   accessToken: string | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
-  setAuth: (token: string, user: AuthUser) => void;
-  setToken: (token: string) => void;
+  setAuth: (auth: AuthSession) => void;
   clearAuth: () => void;
 }
 
@@ -14,7 +15,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   user: null,
   isAuthenticated: false,
-  setAuth: (token, user) => set({ accessToken: token, user, isAuthenticated: true }),
-  setToken: (token) => set({ accessToken: token, isAuthenticated: true }),
+  setAuth: (auth) => set({ accessToken: auth.accessToken, user: auth.user, isAuthenticated: true }),
   clearAuth: () => set({ accessToken: null, user: null, isAuthenticated: false })
 }));

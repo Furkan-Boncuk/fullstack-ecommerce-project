@@ -37,7 +37,7 @@ export function RegisterContainer() {
 
     registerMutation.mutate(values, {
       onSuccess: (result) => {
-        setAuth(result.accessToken, result.user);
+        setAuth(result);
         toast.success('Kayıt başarılı.');
         navigate('/');
       },
