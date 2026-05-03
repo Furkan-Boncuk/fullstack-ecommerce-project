@@ -147,11 +147,13 @@ jobs:
           echo "version_label=$VERSION_LABEL" >> "$GITHUB_OUTPUT"
 
       - name: Deploy backend to Elastic Beanstalk
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           EB_ENVIRONMENT_NAME: ${{ steps.env.outputs.eb_environment }}
           EB_VERSION_LABEL: ${{ steps.eb_version.outputs.version_label }}
         run: |
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
           aws elasticbeanstalk update-environment \
             --application-name "${{ env.EB_APPLICATION_NAME }}" \
             --environment-name "$EB_ENVIRONMENT_NAME" \
@@ -163,30 +165,68 @@ jobs:
               "Namespace=aws:elasticbeanstalk:application:environment,OptionName=REDIS_KEY_PREFIX,Value=${{ steps.env.outputs.name }}:" \
               "Namespace=aws:elasticbeanstalk:environment:process:default,OptionName=HealthCheckPath,Value=${{ env.EB_HEALTHCHECK_PATH }}"
 
-          sleep 120
+          deadline=$((SECONDS + 720))
+          while true; do
+            environment="$(aws elasticbeanstalk describe-environments \
+              --application-name "${{ env.EB_APPLICATION_NAME }}" \
+              --environment-names "$EB_ENVIRONMENT_NAME" \
+              --query "Environments[0].{Status:Status,Health:Health,VersionLabel:VersionLabel}" \
+              --output json)"
+            status="$(jq -r '.Status' <<< "$environment")"
+            health="$(jq -r '.Health' <<< "$environment")"
+            deployed_version="$(jq -r '.VersionLabel' <<< "$environment")"
 
-          environment="$(aws elasticbeanstalk describe-environments \
-            --application-name "${{ env.EB_APPLICATION_NAME }}" \
-            --environment-names "$EB_ENVIRONMENT_NAME" \
-            --query "Environments[0].{Status:Status,Health:Health,VersionLabel:VersionLabel}" \
-            --output json)"
-          status="$(jq -r '.Status' <<< "$environment")"
-          health="$(jq -r '.Health' <<< "$environment")"
-          deployed_version="$(jq -r '.VersionLabel' <<< "$environment")"
+            echo "Elastic Beanstalk status=$status health=$health version=$deployed_version expected=$EB_VERSION_LABEL"
 
-          echo "Elastic Beanstalk status=$status health=$health version=$deployed_version expected=$EB_VERSION_LABEL"
+            if [ "$status" = "Ready" ] && [ "$deployed_version" = "$EB_VERSION_LABEL" ]; then
+              break
+            fi
 
-          if [ "$status" != "Ready" ] || [ "$deployed_version" != "$EB_VERSION_LABEL" ]; then
-            echo "Elastic Beanstalk deployment did not become ready quickly enough."
-            aws elasticbeanstalk describe-events \
+            error_events="$(aws elasticbeanstalk describe-events \
               --application-name "${{ env.EB_APPLICATION_NAME }}" \
               --environment-name "$EB_ENVIRONMENT_NAME" \
-              --max-records 30
-            aws elasticbeanstalk describe-environment-health \
-              --environment-name "$EB_ENVIRONMENT_NAME" \
-              --attribute-names All || true
-            exit 1
-          fi
+              --start-time "$started_at" \
+              --query "Events[?Severity=='ERROR'].Message" \
+              --output text)"
+            if [ -n "$error_events" ]; then
+              echo "Elastic Beanstalk reported deployment error(s):"
+              echo "$error_events"
+              aws elasticbeanstalk describe-events \
+                --application-name "${{ env.EB_APPLICATION_NAME }}" \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --max-records 30
+              aws elasticbeanstalk describe-environment-health \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --attribute-names All || true
+              exit 1
+            fi
+
+            if [ "$status" = "Ready" ] && [ "$deployed_version" != "$EB_VERSION_LABEL" ]; then
+              echo "Elastic Beanstalk became Ready but reverted to version $deployed_version."
+              aws elasticbeanstalk describe-events \
+                --application-name "${{ env.EB_APPLICATION_NAME }}" \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --max-records 30
+              aws elasticbeanstalk describe-environment-health \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --attribute-names All || true
+              exit 1
+            fi
+
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "Timed out waiting for Elastic Beanstalk deployment."
+              aws elasticbeanstalk describe-events \
+                --application-name "${{ env.EB_APPLICATION_NAME }}" \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --max-records 30
+              aws elasticbeanstalk describe-environment-health \
+                --environment-name "$EB_ENVIRONMENT_NAME" \
+                --attribute-names All || true
+              exit 1
+            fi
+
+            sleep 20
+          done
 
       - name: Deploy frontend to S3
         run: aws s3 sync frontend/dist "s3://${{ steps.env.outputs.frontend_bucket }}" --delete
