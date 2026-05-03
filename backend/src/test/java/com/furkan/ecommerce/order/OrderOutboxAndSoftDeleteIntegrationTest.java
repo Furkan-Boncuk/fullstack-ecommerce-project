@@ -26,6 +26,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -68,6 +69,7 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
         Long productId = createProduct("Phone", BigDecimal.valueOf(1000), 20, true);
 
         String token = registerAndExtractAccessToken("order-flow@test.com");
+        updatePaymentProfile(token);
 
         mockMvc.perform(post("/api/v1/cart/items")
                         .header("Authorization", "Bearer " + token)
@@ -161,5 +163,24 @@ class OrderOutboxAndSoftDeleteIntegrationTest {
                 .getContentAsString();
 
         return objectMapper.readTree(response).get("accessToken").asText();
+    }
+
+    private void updatePaymentProfile(String token) throws Exception {
+        mockMvc.perform(patch("/api/v1/auth/profile/payment")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Order",
+                                  "lastName": "Flow",
+                                  "phoneNumber": "+905551112233",
+                                  "identityNumber": "12345678901",
+                                  "address": "Test Mahallesi",
+                                  "city": "Ankara",
+                                  "country": "Turkey",
+                                  "zipCode": "34000"
+                                }
+                                """))
+                .andExpect(status().isOk());
     }
 }
