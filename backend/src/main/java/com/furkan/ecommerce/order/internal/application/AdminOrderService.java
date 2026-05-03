@@ -1,11 +1,9 @@
 package com.furkan.ecommerce.order.internal.application;
 
 import com.furkan.ecommerce.auth.api.AuthReadApi;
-import com.furkan.ecommerce.auth.api.dto.AuthUserSummaryView;
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.common.exception.BusinessException;
 import com.furkan.ecommerce.order.api.dto.AdminOrderView;
-import com.furkan.ecommerce.order.api.dto.OrderView;
 import com.furkan.ecommerce.order.internal.domain.Order;
 import com.furkan.ecommerce.order.internal.domain.OrderStatus;
 import com.furkan.ecommerce.order.internal.persistence.OrderRepository;
@@ -27,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminOrderService {
     private final OrderRepository orderRepository;
     private final AuthReadApi authReadApi;
+    private final OrderMapper orderMapper;
 
     public PageResponse<AdminOrderView> list(String status, Long userId, String email, Pageable pageable) {
         List<Long> emailUserIds = email == null || email.isBlank()
@@ -41,7 +40,7 @@ public class AdminOrderService {
         Map<Long, String> emailsByUserId = userEmails(orders.getContent());
         Page<AdminOrderView> mapped = new PageImpl<>(
                 orders.getContent().stream()
-                        .map(order -> toView(order, emailsByUserId.get(order.getUserId())))
+                        .map(order -> orderMapper.toAdminView(order, emailsByUserId.get(order.getUserId())))
                         .toList(),
                 pageable,
                 orders.getTotalElements()
@@ -85,45 +84,4 @@ public class AdminOrderService {
         return result;
     }
 
-    private AdminOrderView toView(Order order, String userEmail) {
-        return new AdminOrderView(
-                order.getId(),
-                order.getUserId(),
-                userEmail,
-                order.getStatus().name(),
-                order.getTotalAmount(),
-                order.getCreatedAt(),
-                order.getExpiresAt(),
-                shippingAddressView(order),
-                order.lineViews().stream()
-                        .map(line -> new OrderView.OrderItemView(
-                                line.productId(),
-                                line.productName(),
-                                line.productImageUrl(),
-                                line.unitPrice(),
-                                line.quantity(),
-                                line.lineTotal()
-                        ))
-                        .toList()
-        );
-    }
-
-    private OrderView.ShippingAddressView shippingAddressView(Order order) {
-        if (isBlank(order.getShippingFirstName()) && isBlank(order.getShippingLastName()) && isBlank(order.getShippingAddress())) {
-            return null;
-        }
-        return new OrderView.ShippingAddressView(
-                order.getShippingFirstName(),
-                order.getShippingLastName(),
-                order.getShippingPhoneNumber(),
-                order.getShippingAddress(),
-                order.getShippingCity(),
-                order.getShippingCountry(),
-                order.getShippingZipCode()
-        );
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
 }

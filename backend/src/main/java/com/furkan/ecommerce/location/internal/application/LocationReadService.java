@@ -3,8 +3,6 @@ package com.furkan.ecommerce.location.internal.application;
 import com.furkan.ecommerce.location.api.LocationReadApi;
 import com.furkan.ecommerce.location.api.dto.CityView;
 import com.furkan.ecommerce.location.api.dto.CountryView;
-import com.furkan.ecommerce.location.internal.domain.City;
-import com.furkan.ecommerce.location.internal.domain.Country;
 import com.furkan.ecommerce.location.internal.persistence.CityRepository;
 import com.furkan.ecommerce.location.internal.persistence.CountryRepository;
 import java.util.List;
@@ -21,16 +19,17 @@ public class LocationReadService implements LocationReadApi {
 
     private final CountryRepository countryRepository;
     private final CityRepository cityRepository;
+    private final LocationMapper locationMapper;
 
     public List<CountryView> findCountries() {
         return countryRepository.findAllByOrderByCodeAsc().stream()
-                .map(this::toCountryView)
+                .map(locationMapper::toCountryView)
                 .toList();
     }
 
     public List<CityView> findCitiesByCountryCode(String countryCode) {
         return cityRepository.findByCountryCodeOrderBySortOrderAsc(countryCode).stream()
-                .map(this::toCityView)
+                .map(locationMapper::toCityView)
                 .toList();
     }
 
@@ -40,21 +39,4 @@ public class LocationReadService implements LocationReadApi {
                 && cityRepository.existsByCountryCodeAndName(TURKEY_COUNTRY_CODE, city);
     }
 
-    private CountryView toCountryView(Country country) {
-        return new CountryView(
-                country.getId(),
-                country.getCode(),
-                country.getName(),
-                country.getDisplayName()
-        );
-    }
-
-    private CityView toCityView(City city) {
-        return new CityView(
-                city.getId(),
-                city.getName(),
-                city.getPlateCode(),
-                city.getCountry().getCode()
-        );
-    }
 }

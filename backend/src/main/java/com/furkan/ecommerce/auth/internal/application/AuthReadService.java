@@ -30,7 +30,7 @@ class AuthReadService implements AuthReadApi {
             return List.of();
         }
         return userRepository.findByIdIn(userIds).stream()
-                .map(user -> new AuthUserSummaryView(user.getId(), user.getEmail()))
+                .map(authMapper::toUserSummaryView)
                 .toList();
     }
 

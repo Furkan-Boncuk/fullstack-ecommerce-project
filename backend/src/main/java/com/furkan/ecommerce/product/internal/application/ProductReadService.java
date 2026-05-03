@@ -3,7 +3,6 @@ package com.furkan.ecommerce.product.internal;
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.ProductReadApi;
-import com.furkan.ecommerce.product.api.dto.ProductCategorySummary;
 import com.furkan.ecommerce.product.api.dto.ProductFilterRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
 import java.util.Collection;
@@ -19,10 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ProductReadService implements ProductReadApi {
     private final ProductRepository repository;
+    private final ProductMapper productMapper;
 
     public PageResponse<ProductView> list(ProductFilterRequest filter, Pageable pageable) {
         var page = repository.findAll(ProductSpecifications.from(filter), pageable)
-                .map(this::toView);
+                .map(productMapper::toView);
         return PageResponse.of(page);
     }
 
@@ -33,27 +33,11 @@ public class ProductReadService implements ProductReadApi {
 
     @Override
     public Optional<ProductView> findById(Long id) {
-        return repository.findById(id).map(this::toView);
+        return repository.findById(id).map(productMapper::toView);
     }
 
     @Override
     public List<ProductView> findByIds(Collection<Long> ids) {
-        return repository.findByIdIn(ids).stream().map(this::toView).toList();
-    }
-
-    private ProductView toView(Product product) {
-        return new ProductView(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                toCategorySummary(product.getCategory()),
-                product.getImageUrl(),
-                product.getPrice(),
-                product.getStock()
-        );
-    }
-
-    private ProductCategorySummary toCategorySummary(Category category) {
-        return new ProductCategorySummary(category.getId(), category.getName(), category.getSlug());
+        return repository.findByIdIn(ids).stream().map(productMapper::toView).toList();
     }
 }

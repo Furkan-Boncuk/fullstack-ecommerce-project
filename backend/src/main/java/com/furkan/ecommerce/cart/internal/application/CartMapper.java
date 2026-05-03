@@ -9,13 +9,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import org.springframework.beans.factory.annotation.Autowired;
 
-@Component
-@RequiredArgsConstructor
-class CartViewAssembler {
-    private final ProductReadApi productReadApi;
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+abstract class CartMapper {
+    @Autowired
+    protected ProductReadApi productReadApi;
 
     CartView toView(Cart cart) {
         Set<Long> productIds = cart.getItems().stream()
@@ -28,22 +30,7 @@ class CartViewAssembler {
                         .collect(Collectors.toMap(ProductView::id, Function.identity()));
 
         var lines = cart.getItems().stream()
-                .map(item -> {
-                    ProductView product = products.get(item.getProductId());
-                    if (product == null) {
-                        return null;
-                    }
-                    BigDecimal lineTotal = product.price().multiply(BigDecimal.valueOf(item.getQuantity()));
-                    return new CartView.CartLineView(
-                            item.getProductId(),
-                            product.name(),
-                            product.imageUrl(),
-                            product.price(),
-                            item.getQuantity(),
-                            lineTotal,
-                            product.stock()
-                    );
-                })
+                .map(item -> toLineView(item.getProductId(), item.getQuantity(), products.get(item.getProductId())))
                 .filter(java.util.Objects::nonNull)
                 .toList();
 
@@ -56,4 +43,18 @@ class CartViewAssembler {
 
         return new CartView(cart.getUserId(), lines, new CartView.CartSummaryView(itemCount, subtotal));
     }
+
+    private CartView.CartLineView toLineView(Long productId, Integer quantity, ProductView product) {
+        if (product == null) {
+            return null;
+        }
+        BigDecimal lineTotal = product.price().multiply(BigDecimal.valueOf(quantity));
+        return toLineView(productId, quantity, lineTotal, product);
+    }
+
+    @Mapping(target = "name", source = "product.name")
+    @Mapping(target = "imageUrl", source = "product.imageUrl")
+    @Mapping(target = "unitPrice", source = "product.price")
+    @Mapping(target = "availableStock", source = "product.stock")
+    abstract CartView.CartLineView toLineView(Long productId, Integer quantity, BigDecimal lineTotal, ProductView product);
 }

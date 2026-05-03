@@ -10,6 +10,7 @@ import com.furkan.ecommerce.product.api.dto.ProductCategorySummary;
 import com.furkan.ecommerce.product.api.dto.ProductView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Proxy;
@@ -32,8 +33,9 @@ class CartCommandServiceTest {
     void setUp() {
         cartRepository = new FakeCartRepository();
         productReadApi = new FakeProductReadApi();
-        CartViewAssembler assembler = new CartViewAssembler(productReadApi);
-        service = new CartCommandService(cartRepository.proxy(), productReadApi, assembler);
+        CartMapper mapper = Mappers.getMapper(CartMapper.class);
+        ReflectionTestUtils.setField(mapper, "productReadApi", productReadApi);
+        service = new CartCommandService(cartRepository.proxy(), productReadApi, mapper);
     }
 
     @Test

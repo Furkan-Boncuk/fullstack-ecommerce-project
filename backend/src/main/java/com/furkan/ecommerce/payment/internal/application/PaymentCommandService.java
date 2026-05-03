@@ -50,6 +50,7 @@ public class PaymentCommandService {
     private final OutboxRecorder outboxRecorder;
     private final PaymentCallbackProperties callbackProperties;
     private final TransactionTemplate transactionTemplate;
+    private final PaymentMapper paymentMapper;
 
     public PaymentGateway.PaymentResult init(Long userId, Long orderId, String customerIp) {
         OrderPaymentView order = getOwnedPayableOrder(userId, orderId);
@@ -77,13 +78,7 @@ public class PaymentCommandService {
                     attemptReference,
                     order.totalAmount(),
                     order.items().stream()
-                            .map(line -> new PaymentGateway.CheckoutLine(
-                                    line.productId(),
-                                    line.productName(),
-                                    line.productImageUrl(),
-                                    line.unitPrice(),
-                                    line.quantity()
-                            ))
+                            .map(paymentMapper::toCheckoutLine)
                             .toList(),
                     userProfile,
                     customerIp,
@@ -116,8 +111,17 @@ public class PaymentCommandService {
             throw new AccessDeniedException("Order does not belong to authenticated user");
         }
         return transactionTemplate.execute(status -> paymentRepository.findByOrderId(orderId)
-                .map(payment -> toStatusResponse(orderId, payment))
-                .orElse(new PaymentStatusResponse(orderId, "NOT_STARTED", null, null, null, null, order.expiresAt())));
+                .map(payment -> {
+                    PaymentAttempt attempt = latestAttempt(payment).orElse(null);
+                    return paymentMapper.toStatusResponse(
+                            orderId,
+                            payment,
+                            attemptStatus(attempt),
+                            checkoutUrl(payment, attempt),
+                            attempt == null ? null : attempt.getExpiresAt()
+                    );
+                })
+                .orElse(paymentMapper.notStartedStatus(orderId, order)));
     }
 
     private OrderPaymentView getOwnedPayableOrder(Long userId, Long orderId) {
@@ -271,19 +275,6 @@ public class PaymentCommandService {
                 .orElse(new PaymentCallbackResult(orderId, "pending"));
     }
 
-    private PaymentStatusResponse toStatusResponse(Long orderId, Payment payment) {
-        PaymentAttempt attempt = latestAttempt(payment).orElse(null);
-        return new PaymentStatusResponse(
-                orderId,
-                payment.getStatus().name(),
-                attempt == null ? null : attempt.getStatus().name(),
-                payment.getTransactionId(),
-                payment.getErrorCode(),
-                attempt == null ? payment.getCheckoutUrl() : attempt.getCheckoutUrl(),
-                attempt == null ? null : attempt.getExpiresAt()
-        );
-    }
-
     private PaymentGateway.PaymentResult toResult(Payment payment, PaymentAttempt attempt) {
         return switch (payment.getStatus()) {
             case SUCCEEDED -> PaymentGateway.PaymentResult.succeeded(payment.getTransactionId(), payment.getProviderReference());
@@ -309,6 +300,14 @@ public class PaymentCommandService {
 
     private Optional<PaymentAttempt> latestAttempt(Payment payment) {
         return paymentAttemptRepository.findFirstByPaymentOrderByIdDesc(payment);
+    }
+
+    private String attemptStatus(PaymentAttempt attempt) {
+        return attempt == null ? null : attempt.getStatus().name();
+    }
+
+    private String checkoutUrl(Payment payment, PaymentAttempt attempt) {
+        return attempt == null ? payment.getCheckoutUrl() : attempt.getCheckoutUrl();
     }
 
     private void expireLatestAttemptIfNeeded(Payment payment, Instant now) {

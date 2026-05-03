@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class CategoryReadServiceTest {
@@ -16,7 +17,7 @@ class CategoryReadServiceTest {
     @BeforeEach
     void setUp() {
         categoryRepository = new FakeCategoryRepository();
-        service = new CategoryReadService(categoryRepository.proxy());
+        service = new CategoryReadService(categoryRepository.proxy(), Mappers.getMapper(ProductMapper.class));
     }
 
     @Test

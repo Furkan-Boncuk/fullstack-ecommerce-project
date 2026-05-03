@@ -8,6 +8,7 @@ import com.furkan.ecommerce.payment.api.dto.PaymentStatusResponse;
 import com.furkan.ecommerce.payment.internal.PaymentCallbackProperties;
 import com.furkan.ecommerce.payment.internal.PaymentCommandService;
 import com.furkan.ecommerce.payment.internal.PaymentGateway;
+import com.furkan.ecommerce.payment.internal.PaymentMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -33,6 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 class PaymentController {
     private final PaymentCommandService paymentCommandService;
     private final PaymentCallbackProperties properties;
+    private final PaymentMapper paymentMapper;
 
     @PostMapping("/init")
     PaymentInitResponse init(
@@ -44,7 +46,7 @@ class PaymentController {
             throw new UnauthorizedException("Unauthorized");
         }
         PaymentGateway.PaymentResult result = paymentCommandService.init(principal.userId(), request.orderId(), clientIp(servletRequest));
-        return toResponse(result);
+        return paymentMapper.toInitResponse(result);
     }
 
     @GetMapping("/orders/{orderId}")
@@ -59,19 +61,6 @@ class PaymentController {
     ResponseEntity<Void> callback(@RequestParam String token, HttpServletRequest request) {
         log.info("Payment callback received contentType={}", request.getContentType());
         return redirect(paymentCommandService.handleCallback(token));
-    }
-
-    private PaymentInitResponse toResponse(PaymentGateway.PaymentResult result) {
-        return new PaymentInitResponse(
-                result.success(),
-                result.status(),
-                result.transactionId(),
-                result.errorCode(),
-                result.checkoutUrl(),
-                result.checkoutToken(),
-                result.providerReference(),
-                result.expiresAt()
-        );
     }
 
     private ResponseEntity<Void> redirect(PaymentCommandService.PaymentCallbackResult result) {

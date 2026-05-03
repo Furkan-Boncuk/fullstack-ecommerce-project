@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -66,7 +67,8 @@ class PaymentCommandServiceTest {
                 processedEventRepository.proxy(),
                 outboxRecorder,
                 callbackProperties,
-                new TransactionTemplate(transactionManager())
+                new TransactionTemplate(transactionManager()),
+                Mappers.getMapper(PaymentMapper.class)
         );
     }
 

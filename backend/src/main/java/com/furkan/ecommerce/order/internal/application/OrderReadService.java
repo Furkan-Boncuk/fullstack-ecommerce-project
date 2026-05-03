@@ -14,36 +14,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 class OrderReadService implements OrderReadApi {
     private final OrderRepository orderRepository;
+    private final OrderMapper orderMapper;
 
     @Override
     public Optional<OrderInventoryView> findInventoryViewById(Long orderId) {
         return orderRepository.findWithItemsById(orderId)
-                .map(order -> new OrderInventoryView(
-                        order.getId(),
-                        order.inventoryLines().stream()
-                                .map(item -> new OrderInventoryView.OrderInventoryLineView(item.productId(), item.quantity()))
-                                .toList()
-                ));
+                .map(orderMapper::toInventoryView);
     }
 
     @Override
     public Optional<OrderPaymentView> findPaymentViewById(Long orderId) {
         return orderRepository.findWithItemsById(orderId)
-                .map(order -> new OrderPaymentView(
-                        order.getId(),
-                        order.getUserId(),
-                        order.getStatus().name(),
-                        order.getTotalAmount(),
-                        order.getExpiresAt(),
-                        order.lineViews().stream()
-                                .map(line -> new OrderPaymentView.OrderPaymentLineView(
-                                        line.productId(),
-                                        line.productName(),
-                                        line.productImageUrl(),
-                                        line.unitPrice(),
-                                        line.quantity()
-                                ))
-                                .toList()
-                ));
+                .map(orderMapper::toPaymentView);
     }
 }

@@ -3,7 +3,6 @@ package com.furkan.ecommerce.product.internal;
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.dto.AdminProductRequest;
-import com.furkan.ecommerce.product.api.dto.ProductCategorySummary;
 import com.furkan.ecommerce.product.api.dto.ProductView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -17,9 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductCommandService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductMapper productMapper;
 
     public PageResponse<ProductView> list(Pageable pageable) {
-        return PageResponse.of(productRepository.findAll((Specification<Product>) null, pageable).map(this::toView));
+        return PageResponse.of(productRepository.findAll((Specification<Product>) null, pageable).map(productMapper::toView));
     }
 
     @Transactional
@@ -32,7 +32,7 @@ public class ProductCommandService {
                 request.imageUrl(),
                 category(request.categoryId())
         ));
-        return toView(product);
+        return productMapper.toView(product);
     }
 
     @Transactional
@@ -46,7 +46,7 @@ public class ProductCommandService {
                 request.imageUrl(),
                 category(request.categoryId())
         );
-        return toView(product);
+        return productMapper.toView(product);
     }
 
     @Transactional
@@ -64,15 +64,4 @@ public class ProductCommandService {
                 .orElseThrow(() -> new ResourceNotFoundException("CATEGORY_NOT_FOUND", "Category not found"));
     }
 
-    private ProductView toView(Product product) {
-        return new ProductView(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                new ProductCategorySummary(product.getCategory().getId(), product.getCategory().getName(), product.getCategory().getSlug()),
-                product.getImageUrl(),
-                product.getPrice(),
-                product.getStock()
-        );
-    }
 }

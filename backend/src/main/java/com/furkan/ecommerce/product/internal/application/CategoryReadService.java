@@ -17,11 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CategoryReadService implements CategoryReadApi {
     private final CategoryRepository categoryRepository;
+    private final ProductMapper productMapper;
 
     @Override
     public List<CategoryView> findAll() {
         return categoryRepository.findAllByOrderBySortOrderAscNameAsc().stream()
-                .map(this::toView)
+                .map(productMapper::toCategoryView)
                 .toList();
     }
 
@@ -38,7 +39,7 @@ public class CategoryReadService implements CategoryReadApi {
 
     @Override
     public Optional<CategoryView> findBySlug(String slug) {
-        return categoryRepository.findBySlug(slug).map(this::toView);
+        return categoryRepository.findBySlug(slug).map(productMapper::toCategoryView);
     }
 
     public CategoryView getBySlug(String slug) {
@@ -46,22 +47,10 @@ public class CategoryReadService implements CategoryReadApi {
                 .orElseThrow(() -> new ResourceNotFoundException("CATEGORY_NOT_FOUND", "Category not found"));
     }
 
-    private CategoryView toView(Category category) {
-        return new CategoryView(
-                category.getId(),
-                category.getName(),
-                category.getSlug(),
-                category.getDescription(),
-                category.getImageUrl(),
-                category.getParent() == null ? null : category.getParent().getId(),
-                category.getSortOrder()
-        );
-    }
-
     private CategoryTreeView toTreeView(Category category, Map<Long, List<Category>> byParentId) {
         List<CategoryTreeView> children = byParentId.getOrDefault(category.getId(), List.of()).stream()
                 .map(child -> toTreeView(child, byParentId))
                 .toList();
-        return new CategoryTreeView(category.getId(), category.getName(), category.getSlug(), children);
+        return productMapper.toTreeView(category, children);
     }
 }
