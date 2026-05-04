@@ -13,11 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 class CartReadService implements CartReadApi {
     private final CartRepository cartRepository;
-    private final CartMapper cartMapper;
+    private final CartViewAssembler cartViewAssembler;
 
     @Override
     public CartView getCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
-        return cartMapper.toView(cart);
+        return cartViewAssembler.toView(cart);
     }
 }

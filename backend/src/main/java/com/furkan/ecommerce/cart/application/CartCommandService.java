@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CartCommandService {
     private final CartRepository cartRepository;
     private final ProductReadApi productReadApi;
-    private final CartMapper cartMapper;
+    private final CartViewAssembler cartViewAssembler;
 
     @Transactional
     public CartView addItem(Long userId, CartItemRequest request) {
@@ -31,7 +31,7 @@ public class CartCommandService {
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
         cart.addOrUpdate(request.productId(), request.quantity());
         Cart savedCart = cartRepository.save(cart);
-        return cartMapper.toView(savedCart);
+        return cartViewAssembler.toView(savedCart);
     }
 
     @Transactional
@@ -39,9 +39,9 @@ public class CartCommandService {
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> Cart.create(userId));
         cart.remove(productId);
         if (cart.getId() == null) {
-            return cartMapper.toView(cart);
+            return cartViewAssembler.toView(cart);
         }
-        return cartMapper.toView(cartRepository.save(cart));
+        return cartViewAssembler.toView(cartRepository.save(cart));
     }
 
     @Transactional

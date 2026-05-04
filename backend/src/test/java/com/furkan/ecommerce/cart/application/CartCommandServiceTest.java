@@ -34,8 +34,8 @@ class CartCommandServiceTest {
         cartRepository = new FakeCartRepository();
         productReadApi = new FakeProductReadApi();
         CartMapper mapper = Mappers.getMapper(CartMapper.class);
-        ReflectionTestUtils.setField(mapper, "productReadApi", productReadApi);
-        service = new CartCommandService(cartRepository.proxy(), productReadApi, mapper);
+        CartViewAssembler cartViewAssembler = new CartViewAssembler(productReadApi, mapper);
+        service = new CartCommandService(cartRepository.proxy(), productReadApi, cartViewAssembler);
     }
 
     @Test
