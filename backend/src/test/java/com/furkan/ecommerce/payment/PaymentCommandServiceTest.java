@@ -66,6 +66,19 @@ class PaymentCommandServiceTest {
         );
         var transactionTemplate = new TransactionTemplate(transactionManager());
         var paymentReferenceParser = new PaymentReferenceParser();
+        var paymentMapper = Mappers.getMapper(PaymentMapper.class);
+        var profileValidator = new PaymentProfileValidator();
+        var initService = new PaymentInitService(
+                gateway,
+                authReadApi,
+                orderReadApi,
+                paymentRepository.proxy(),
+                paymentAttemptRepository.proxy(),
+                callbackProperties,
+                transactionTemplate,
+                paymentMapper,
+                profileValidator
+        );
         var callbackService = new PaymentCallbackService(
                 gateway,
                 orderReadApi,
@@ -77,17 +90,17 @@ class PaymentCommandServiceTest {
                 transactionTemplate,
                 paymentReferenceParser
         );
-        service = new PaymentCommandService(
-                gateway,
-                authReadApi,
+        var statusService = new PaymentStatusService(
                 orderReadApi,
                 paymentRepository.proxy(),
                 paymentAttemptRepository.proxy(),
-                callbackProperties,
                 transactionTemplate,
-                Mappers.getMapper(PaymentMapper.class),
-                new PaymentProfileValidator(),
-                callbackService
+                paymentMapper
+        );
+        service = new PaymentCommandService(
+                initService,
+                callbackService,
+                statusService
         );
     }
 
