@@ -2,6 +2,7 @@ package com.furkan.ecommerce.product.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.furkan.ecommerce.common.outbox.ProcessedEvent;
 import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.OrderReadApi;
 import com.furkan.ecommerce.order.dto.OrderInventoryView;
@@ -16,13 +17,16 @@ import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class ProductEventHandlerBatchTest {
@@ -61,6 +65,29 @@ class ProductEventHandlerBatchTest {
         assertThat(first.getReservedStock()).isEqualTo(2);
         assertThat(second.getStock()).isEqualTo(4);
         assertThat(second.getReservedStock()).isEqualTo(1);
+    }
+
+    @Test
+    void should_not_reserve_stock_twice_when_order_created_event_is_replayed() {
+        Product product = productRepository.add(product(10L, 10));
+        var handler = new ProductOrderEventHandler(productRepository.proxy(), processedEventRepository.proxy());
+        UUID eventId = UUID.randomUUID();
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                eventId,
+                100L,
+                1L,
+                BigDecimal.valueOf(200),
+                List.of(new OrderCreatedEvent.OrderItemSnapshot(10L, 2)),
+                Instant.now()
+        );
+
+        handler.on(event);
+        handler.on(event);
+
+        assertThat(product.getStock()).isEqualTo(8);
+        assertThat(product.getReservedStock()).isEqualTo(2);
+        assertThat(productRepository.findByIdInCalls).isEqualTo(1);
+        assertThat(processedEventRepository.savedEvents).hasSize(1);
     }
 
     @Test
@@ -107,6 +134,30 @@ class ProductEventHandlerBatchTest {
         assertThat(first.getReservedStock()).isZero();
         assertThat(second.getStock()).isEqualTo(5);
         assertThat(second.getReservedStock()).isZero();
+    }
+
+    @Test
+    void should_not_release_stock_twice_when_order_expired_event_is_replayed() {
+        Product product = productRepository.add(product(10L, 10));
+        product.reserveStock(2);
+        orderReadApi.inventoryView = Optional.of(new OrderInventoryView(
+                100L,
+                List.of(new OrderInventoryView.OrderInventoryLineView(10L, 2))
+        ));
+        var handler = new ProductPaymentEventHandler(
+                orderReadApi,
+                productRepository.proxy(),
+                processedEventRepository.proxy()
+        );
+        OrderExpiredEvent event = new OrderExpiredEvent(UUID.randomUUID(), 100L, 1L, Instant.now());
+
+        handler.on(event);
+        handler.on(event);
+
+        assertThat(product.getStock()).isEqualTo(10);
+        assertThat(product.getReservedStock()).isZero();
+        assertThat(productRepository.findByIdInCalls).isEqualTo(1);
+        assertThat(processedEventRepository.savedEvents).hasSize(1);
     }
 
     private OrderInventoryView inventoryView() {
@@ -161,15 +212,24 @@ class ProductEventHandlerBatchTest {
     }
 
     private static class FakeProcessedEventRepository {
+        private final Set<ProcessedEvent.Key> savedEvents = new HashSet<>();
+
         ProcessedEventRepository proxy() {
             return (ProcessedEventRepository) Proxy.newProxyInstance(
                     ProcessedEventRepository.class.getClassLoader(),
                     new Class<?>[]{ProcessedEventRepository.class},
                     (proxy, method, args) -> switch (method.getName()) {
-                        case "saveAndFlush" -> args[0];
+                        case "saveAndFlush" -> save((ProcessedEvent) args[0]);
                         default -> throw new UnsupportedOperationException(method.getName());
                     }
             );
+        }
+
+        private ProcessedEvent save(ProcessedEvent event) {
+            if (!savedEvents.add(new ProcessedEvent.Key(event.getConsumer(), event.getEventId()))) {
+                throw new DataIntegrityViolationException("duplicate processed event");
+            }
+            return event;
         }
     }
 
