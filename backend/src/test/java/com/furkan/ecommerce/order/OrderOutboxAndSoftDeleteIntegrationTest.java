@@ -2,8 +2,8 @@ package com.furkan.ecommerce.order;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.furkan.ecommerce.auth.internal.domain.User;
-import com.furkan.ecommerce.auth.internal.persistence.UserRepository;
+import com.furkan.ecommerce.auth.domain.User;
+import com.furkan.ecommerce.auth.persistence.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

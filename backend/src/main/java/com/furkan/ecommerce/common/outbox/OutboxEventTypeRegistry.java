@@ -1,11 +1,11 @@
 package com.furkan.ecommerce.common.outbox;
 
 import com.furkan.ecommerce.common.exception.BusinessException;
-import com.furkan.ecommerce.order.api.event.OrderCreatedEvent;
-import com.furkan.ecommerce.order.api.event.OrderExpiredEvent;
-import com.furkan.ecommerce.payment.api.event.PaymentFailedEvent;
-import com.furkan.ecommerce.payment.api.event.PaymentRequiresReviewEvent;
-import com.furkan.ecommerce.payment.api.event.PaymentSucceededEvent;
+import com.furkan.ecommerce.order.event.OrderCreatedEvent;
+import com.furkan.ecommerce.order.event.OrderExpiredEvent;
+import com.furkan.ecommerce.payment.event.PaymentFailedEvent;
+import com.furkan.ecommerce.payment.event.PaymentRequiresReviewEvent;
+import com.furkan.ecommerce.payment.event.PaymentSucceededEvent;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 

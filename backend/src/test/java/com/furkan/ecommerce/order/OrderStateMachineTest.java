@@ -1,7 +1,7 @@
 package com.furkan.ecommerce.order;
 
 import com.furkan.ecommerce.common.exception.BusinessException;
-import com.furkan.ecommerce.order.internal.domain.Order;
+import com.furkan.ecommerce.order.domain.Order;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
