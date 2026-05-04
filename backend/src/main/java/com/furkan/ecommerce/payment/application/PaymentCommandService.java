@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,7 +35,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class PaymentCommandService {
     private static final String CALLBACK_CONSUMER = "payment-callback";
-    private static final Pattern ORDER_REFERENCE = Pattern.compile("^order-(\\d+)-.+$");
     private static final List<PaymentAttemptStatus> ACTIVE_ATTEMPT_STATUSES = List.of(
             PaymentAttemptStatus.INIT_REQUESTED,
             PaymentAttemptStatus.ACTION_REQUIRED
@@ -52,6 +50,8 @@ public class PaymentCommandService {
     private final PaymentCallbackProperties callbackProperties;
     private final TransactionTemplate transactionTemplate;
     private final PaymentMapper paymentMapper;
+    private final PaymentReferenceParser referenceParser;
+    private final PaymentProfileValidator profileValidator;
 
     public PaymentGateway.PaymentResult init(Long userId, Long orderId, String customerIp) {
         OrderPaymentView order = getOwnedPayableOrder(userId, orderId);
@@ -67,7 +67,7 @@ public class PaymentCommandService {
 
         AuthPaymentProfileView userProfile = authReadApi.findPaymentProfileById(order.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found"));
-        validatePaymentProfile(userProfile);
+        profileValidator.validate(userProfile);
 
         Long attemptId = preparation.attemptId();
         String attemptReference = preparation.attemptReference();
@@ -323,25 +323,10 @@ public class PaymentCommandService {
         return UUID.nameUUIDFromBytes((CALLBACK_CONSUMER + ":" + token).getBytes(StandardCharsets.UTF_8));
     }
 
-    private Long parseOrderId(String providerReference) {
-        if (isBlank(providerReference)) {
-            throw new BusinessException("PAYMENT_PROVIDER_REFERENCE_INVALID", "Invalid provider reference");
-        }
-        var matcher = ORDER_REFERENCE.matcher(providerReference);
-        if (matcher.matches()) {
-            return Long.valueOf(matcher.group(1));
-        }
-        try {
-            return Long.valueOf(providerReference);
-        } catch (NumberFormatException ex) {
-            throw new BusinessException("PAYMENT_PROVIDER_REFERENCE_INVALID", "Invalid provider reference");
-        }
-    }
-
     private Long resolveCallbackOrderId(String token, String providerReference) {
         if (!isBlank(providerReference)) {
             try {
-                return parseOrderId(providerReference);
+                return referenceParser.parseOrderId(providerReference);
             } catch (BusinessException ignored) {
                 // Some providers do not echo conversationId reliably on callback verification.
             }
@@ -350,19 +335,6 @@ public class PaymentCommandService {
         return paymentAttemptRepository.findByCheckoutToken(token)
                 .map(PaymentAttempt::getOrderId)
                 .orElseThrow(() -> new BusinessException("PAYMENT_PROVIDER_REFERENCE_INVALID", "Invalid provider reference"));
-    }
-
-    private void validatePaymentProfile(AuthPaymentProfileView profile) {
-        if (isBlank(profile.firstName())
-                || isBlank(profile.lastName())
-                || isBlank(profile.phoneNumber())
-                || isBlank(profile.identityNumber())
-                || isBlank(profile.address())
-                || isBlank(profile.city())
-                || isBlank(profile.country())
-                || isBlank(profile.zipCode())) {
-            throw new BusinessException("PAYMENT_PROFILE_INCOMPLETE", "User profile is incomplete for payment");
-        }
     }
 
     private boolean isBlank(String value) {

@@ -74,7 +74,9 @@ class PaymentCommandServiceTest {
                 outboxRecorder,
                 callbackProperties,
                 new TransactionTemplate(transactionManager()),
-                Mappers.getMapper(PaymentMapper.class)
+                Mappers.getMapper(PaymentMapper.class),
+                new PaymentReferenceParser(),
+                new PaymentProfileValidator()
         );
     }
 
