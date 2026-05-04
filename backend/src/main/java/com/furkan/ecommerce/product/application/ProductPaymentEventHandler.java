@@ -6,7 +6,12 @@ import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.OrderReadApi;
 import com.furkan.ecommerce.order.event.OrderExpiredEvent;
 import com.furkan.ecommerce.payment.event.PaymentSucceededEvent;
+import com.furkan.ecommerce.product.domain.Product;
 import com.furkan.ecommerce.product.persistence.ProductRepository;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,9 +36,12 @@ class ProductPaymentEventHandler {
         }
         var order = orderReadApi.findInventoryViewById(event.orderId())
                 .orElseThrow(() -> new ResourceNotFoundException("ORDER_NOT_FOUND", "Order not found"));
+        Map<Long, Product> productsById = loadProductsById(order.lines().stream()
+                .map(line -> line.productId())
+                .collect(Collectors.toSet()));
+
         for (var line : order.lines()) {
-            var product = productRepository.findById(line.productId())
-                    .orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found: " + line.productId()));
+            Product product = productsById.get(line.productId());
             product.commitReservedStock(line.quantity());
         }
     }
@@ -46,9 +54,12 @@ class ProductPaymentEventHandler {
         }
         var order = orderReadApi.findInventoryViewById(event.orderId())
                 .orElseThrow(() -> new ResourceNotFoundException("ORDER_NOT_FOUND", "Order not found"));
+        Map<Long, Product> productsById = loadProductsById(order.lines().stream()
+                .map(line -> line.productId())
+                .collect(Collectors.toSet()));
+
         for (var line : order.lines()) {
-            var product = productRepository.findById(line.productId())
-                    .orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found: " + line.productId()));
+            Product product = productsById.get(line.productId());
             product.releaseStock(line.quantity());
         }
     }
@@ -60,5 +71,19 @@ class ProductPaymentEventHandler {
         } catch (DataIntegrityViolationException duplicate) {
             return true;
         }
+    }
+
+    private Map<Long, Product> loadProductsById(Collection<Long> productIds) {
+        Map<Long, Product> productsById = productRepository.findByIdIn(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        productIds.stream()
+                .filter(productId -> !productsById.containsKey(productId))
+                .findFirst()
+                .ifPresent(productId -> {
+                    throw new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found: " + productId);
+                });
+
+        return productsById;
     }
 }

@@ -4,7 +4,12 @@ import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.common.outbox.ProcessedEvent;
 import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.event.OrderCreatedEvent;
+import com.furkan.ecommerce.product.domain.Product;
 import com.furkan.ecommerce.product.persistence.ProductRepository;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,10 +33,27 @@ class ProductOrderEventHandler {
             return;
         }
 
+        Map<Long, Product> productsById = loadProductsById(event.items().stream()
+                .map(OrderCreatedEvent.OrderItemSnapshot::productId)
+                .collect(Collectors.toSet()));
+
         for (OrderCreatedEvent.OrderItemSnapshot item : event.items()) {
-            var product = productRepository.findById(item.productId())
-                    .orElseThrow(() -> new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found: " + item.productId()));
+            Product product = productsById.get(item.productId());
             product.reserveStock(item.quantity());
         }
+    }
+
+    private Map<Long, Product> loadProductsById(Collection<Long> productIds) {
+        Map<Long, Product> productsById = productRepository.findByIdIn(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        productIds.stream()
+                .filter(productId -> !productsById.containsKey(productId))
+                .findFirst()
+                .ifPresent(productId -> {
+                    throw new ResourceNotFoundException("PRODUCT_NOT_FOUND", "Product not found: " + productId);
+                });
+
+        return productsById;
     }
 }
