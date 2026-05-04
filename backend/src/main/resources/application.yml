@@ -32,6 +32,8 @@ management:
         include: health,info,metrics
 
 app:
+  outbox:
+    batch-size: ${OUTBOX_BATCH_SIZE:50}
   redis:
     key-prefix: ${REDIS_KEY_PREFIX:}
   cors:
