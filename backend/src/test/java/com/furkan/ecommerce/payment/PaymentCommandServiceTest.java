@@ -12,6 +12,7 @@ import com.furkan.ecommerce.common.outbox.ProcessedEvent;
 import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.OrderReadApi;
 import com.furkan.ecommerce.order.dto.OrderInventoryView;
+import com.furkan.ecommerce.order.dto.OrderPaymentState;
 import com.furkan.ecommerce.order.dto.OrderPaymentView;
 import com.furkan.ecommerce.payment.config.PaymentCallbackProperties;
 import com.furkan.ecommerce.payment.domain.Payment;
@@ -151,7 +152,7 @@ class PaymentCommandServiceTest {
         return new OrderPaymentView(
                 orderId,
                 userId,
-                "PENDING",
+                OrderPaymentState.PAYABLE,
                 totalAmount,
                 Instant.now().plusSeconds(1800),
                 List.of(new OrderPaymentView.OrderPaymentLineView(1L, "Test Ürün", null, totalAmount, 1))

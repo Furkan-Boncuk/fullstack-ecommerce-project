@@ -36,11 +36,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class PaymentCommandService {
     private static final String CALLBACK_CONSUMER = "payment-callback";
-    private static final String ORDER_PENDING = "PENDING";
-    private static final String ORDER_PAYMENT_FAILED = "PAYMENT_FAILED";
-    private static final String ORDER_EXPIRED = "EXPIRED";
-    private static final String ORDER_CANCELLED = "CANCELLED";
-    private static final String ORDER_REQUIRES_REVIEW = "REQUIRES_REVIEW";
     private static final Pattern ORDER_REFERENCE = Pattern.compile("^order-(\\d+)-.+$");
     private static final List<PaymentAttemptStatus> ACTIVE_ATTEMPT_STATUSES = List.of(
             PaymentAttemptStatus.INIT_REQUESTED,
@@ -136,7 +131,7 @@ public class PaymentCommandService {
         if (!order.userId().equals(userId)) {
             throw new AccessDeniedException("Order does not belong to authenticated user");
         }
-        if (!ORDER_PENDING.equals(order.status()) && !ORDER_PAYMENT_FAILED.equals(order.status())) {
+        if (!order.status().isPayable()) {
             throw new BusinessException("ORDER_INVALID_STATE", "Order is not payable");
         }
         if (!order.expiresAt().isAfter(Instant.now())) {
@@ -260,7 +255,7 @@ public class PaymentCommandService {
 
     private String reviewReason(OrderPaymentView order, PaymentGateway.VerifyResult verifyResult) {
         if (verifyResult.success()) {
-            if (ORDER_EXPIRED.equals(order.status()) || ORDER_CANCELLED.equals(order.status()) || ORDER_REQUIRES_REVIEW.equals(order.status())) {
+            if (!order.status().isFulfillableAfterCallback()) {
                 return "ORDER_NOT_FULFILLABLE";
             }
             if (verifyResult.paidAmount() != null && verifyResult.paidAmount().compareTo(order.totalAmount()) != 0) {

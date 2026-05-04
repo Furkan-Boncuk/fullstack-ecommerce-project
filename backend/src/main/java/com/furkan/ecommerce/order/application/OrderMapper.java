@@ -2,9 +2,11 @@ package com.furkan.ecommerce.order.application;
 
 import com.furkan.ecommerce.order.dto.AdminOrderView;
 import com.furkan.ecommerce.order.dto.OrderInventoryView;
+import com.furkan.ecommerce.order.dto.OrderPaymentState;
 import com.furkan.ecommerce.order.dto.OrderPaymentView;
 import com.furkan.ecommerce.order.dto.OrderView;
 import com.furkan.ecommerce.order.domain.Order;
+import com.furkan.ecommerce.order.domain.OrderStatus;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
@@ -29,7 +31,7 @@ abstract class OrderMapper {
     abstract OrderInventoryView toInventoryView(Order order);
 
     @Mapping(target = "orderId", source = "id")
-    @Mapping(target = "status", source = "status")
+    @Mapping(target = "status", source = "status", qualifiedByName = "paymentState")
     @Mapping(target = "items", source = "order", qualifiedByName = "paymentLines")
     abstract OrderPaymentView toPaymentView(Order order);
 
@@ -74,6 +76,15 @@ abstract class OrderMapper {
         return order.inventoryLines().stream()
                 .map(this::toInventoryLineView)
                 .collect(Collectors.toList());
+    }
+
+    @Named("paymentState")
+    OrderPaymentState toPaymentState(OrderStatus status) {
+        return switch (status) {
+            case PENDING, PAYMENT_FAILED -> OrderPaymentState.PAYABLE;
+            case EXPIRED, CANCELLED, REQUIRES_REVIEW -> OrderPaymentState.NOT_FULFILLABLE_AFTER_CALLBACK;
+            case PAID -> OrderPaymentState.NOT_PAYABLE;
+        };
     }
 
     @Mapping(target = "firstName", source = "shippingFirstName")

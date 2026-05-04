@@ -7,7 +7,7 @@ import java.util.List;
 public record OrderPaymentView(
         Long orderId,
         Long userId,
-        String status,
+        OrderPaymentState status,
         BigDecimal totalAmount,
         Instant expiresAt,
         List<OrderPaymentLineView> items
