@@ -64,19 +64,30 @@ class PaymentCommandServiceTest {
                 Duration.ofMinutes(30),
                 new PaymentCallbackProperties.IyzicoProperties("api-key", "secret-key", "https://sandbox-api.iyzipay.com")
         );
-        service = new PaymentCommandService(
+        var transactionTemplate = new TransactionTemplate(transactionManager());
+        var paymentReferenceParser = new PaymentReferenceParser();
+        var callbackService = new PaymentCallbackService(
                 gateway,
-                authReadApi,
                 orderReadApi,
                 paymentRepository.proxy(),
                 paymentAttemptRepository.proxy(),
                 processedEventRepository.proxy(),
                 outboxRecorder,
                 callbackProperties,
-                new TransactionTemplate(transactionManager()),
+                transactionTemplate,
+                paymentReferenceParser
+        );
+        service = new PaymentCommandService(
+                gateway,
+                authReadApi,
+                orderReadApi,
+                paymentRepository.proxy(),
+                paymentAttemptRepository.proxy(),
+                callbackProperties,
+                transactionTemplate,
                 Mappers.getMapper(PaymentMapper.class),
-                new PaymentReferenceParser(),
-                new PaymentProfileValidator()
+                new PaymentProfileValidator(),
+                callbackService
         );
     }
 
