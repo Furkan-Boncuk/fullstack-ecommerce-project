@@ -1,9 +1,13 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.application;
 
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.dto.AdminProductRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
+import com.furkan.ecommerce.product.internal.domain.Category;
+import com.furkan.ecommerce.product.internal.domain.Product;
+import com.furkan.ecommerce.product.internal.persistence.CategoryRepository;
+import com.furkan.ecommerce.product.internal.persistence.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

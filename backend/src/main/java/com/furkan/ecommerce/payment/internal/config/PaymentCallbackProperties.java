@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

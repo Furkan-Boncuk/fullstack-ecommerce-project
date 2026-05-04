@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
 import com.furkan.ecommerce.common.exception.BusinessException;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "payments")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class Payment extends BaseEntity {
+public class Payment extends BaseEntity {
     @Column(nullable = false, unique = true)
     private Long orderId;
 

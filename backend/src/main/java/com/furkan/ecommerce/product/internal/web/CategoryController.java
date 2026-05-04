@@ -2,7 +2,7 @@ package com.furkan.ecommerce.product.internal.web;
 
 import com.furkan.ecommerce.product.api.dto.CategoryTreeView;
 import com.furkan.ecommerce.product.api.dto.CategoryView;
-import com.furkan.ecommerce.product.internal.CategoryReadService;
+import com.furkan.ecommerce.product.internal.application.CategoryReadService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,9 +1,11 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.application;
 
 import com.furkan.ecommerce.product.api.dto.CategoryTreeView;
 import com.furkan.ecommerce.product.api.dto.CategoryView;
 import com.furkan.ecommerce.product.api.dto.ProductCategorySummary;
 import com.furkan.ecommerce.product.api.dto.ProductView;
+import com.furkan.ecommerce.product.internal.domain.Category;
+import com.furkan.ecommerce.product.internal.domain.Product;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

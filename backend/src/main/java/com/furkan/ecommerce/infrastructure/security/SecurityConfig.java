@@ -1,11 +1,6 @@
 package com.furkan.ecommerce.infrastructure.security;
 
-import com.furkan.ecommerce.auth.internal.config.AuthCookieProperties;
-import com.furkan.ecommerce.infrastructure.crypto.PiiEncryptionProperties;
-import com.furkan.ecommerce.infrastructure.jwt.JwtProperties;
-import com.furkan.ecommerce.payment.internal.PaymentCallbackProperties;
 import java.util.List;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,7 +17,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, AuthCookieProperties.class, PaymentCallbackProperties.class, PiiEncryptionProperties.class, CorsProperties.class})
 public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(

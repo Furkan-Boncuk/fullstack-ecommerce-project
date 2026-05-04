@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.domain;
 
 import com.furkan.ecommerce.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;

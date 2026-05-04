@@ -1,9 +1,11 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.application;
 
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.CategoryReadApi;
 import com.furkan.ecommerce.product.api.dto.CategoryTreeView;
 import com.furkan.ecommerce.product.api.dto.CategoryView;
+import com.furkan.ecommerce.product.internal.domain.Category;
+import com.furkan.ecommerce.product.internal.persistence.CategoryRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

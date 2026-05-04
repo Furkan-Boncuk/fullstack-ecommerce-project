@@ -1,6 +1,4 @@
 package com.furkan.ecommerce.common.exception;
-
-import com.furkan.ecommerce.auth.internal.exception.EmailAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Locale;
@@ -30,8 +28,8 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, ex.code(), req);
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    ProblemDetail handleEmailExists(EmailAlreadyExistsException ex, HttpServletRequest req) {
+    @ExceptionHandler(ConflictException.class)
+    ProblemDetail handleConflict(ConflictException ex, HttpServletRequest req) {
         return problem(HttpStatus.CONFLICT, ex.code(), req);
     }
 

@@ -2,8 +2,8 @@ package com.furkan.ecommerce.payment.internal.adapter;
 
 import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
 import com.furkan.ecommerce.common.exception.BusinessException;
-import com.furkan.ecommerce.payment.internal.PaymentCallbackProperties;
-import com.furkan.ecommerce.payment.internal.PaymentGateway;
+import com.furkan.ecommerce.payment.internal.application.PaymentGateway;
+import com.furkan.ecommerce.payment.internal.config.PaymentCallbackProperties;
 import com.iyzipay.Options;
 import com.iyzipay.model.Address;
 import com.iyzipay.model.BasketItem;
@@ -17,7 +17,6 @@ import com.iyzipay.model.PaymentGroup;
 import com.iyzipay.model.Status;
 import com.iyzipay.request.CreateCheckoutFormInitializeRequest;
 import com.iyzipay.request.RetrieveCheckoutFormRequest;
-import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;

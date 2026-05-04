@@ -4,7 +4,7 @@ import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.infrastructure.security.AdminOnly;
 import com.furkan.ecommerce.product.api.dto.AdminProductRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
-import com.furkan.ecommerce.product.internal.ProductCommandService;
+import com.furkan.ecommerce.product.internal.application.ProductCommandService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

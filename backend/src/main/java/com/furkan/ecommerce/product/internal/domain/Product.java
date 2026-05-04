@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
 import com.furkan.ecommerce.common.exception.BusinessException;
@@ -19,7 +19,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Table(name = "products")
 @SQLRestriction("active = true")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class Product extends BaseEntity {
+public class Product extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
@@ -45,7 +45,7 @@ class Product extends BaseEntity {
     @Column(nullable = false)
     private boolean active;
 
-    static Product create(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
+    public static Product create(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
         Product p = new Product();
         p.updateDetails(name, description, price, stock, imageUrl, category);
         p.reservedStock = 0;
@@ -53,7 +53,7 @@ class Product extends BaseEntity {
         return p;
     }
 
-    void updateDetails(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
+    public void updateDetails(String name, String description, BigDecimal price, Integer stock, String imageUrl, Category category) {
         if (name == null || name.isBlank()) {
             throw new BusinessException("PRODUCT_NAME_REQUIRED", "Product name is required");
         }
@@ -78,7 +78,7 @@ class Product extends BaseEntity {
         return value == null ? null : value.trim();
     }
 
-    void reserveStock(int qty) {
+    public void reserveStock(int qty) {
         if (qty <= 0) {
             throw new BusinessException("INVALID_QUANTITY", "Quantity must be greater than zero");
         }
@@ -89,7 +89,7 @@ class Product extends BaseEntity {
         reservedStock += qty;
     }
 
-    void releaseStock(int qty) {
+    public void releaseStock(int qty) {
         if (qty <= 0) {
             throw new BusinessException("INVALID_QUANTITY", "Quantity must be greater than zero");
         }
@@ -100,7 +100,7 @@ class Product extends BaseEntity {
         stock += qty;
     }
 
-    void commitReservedStock(int qty) {
+    public void commitReservedStock(int qty) {
         if (qty <= 0) {
             throw new BusinessException("INVALID_QUANTITY", "Quantity must be greater than zero");
         }
@@ -110,7 +110,7 @@ class Product extends BaseEntity {
         reservedStock -= qty;
     }
 
-    void deactivate() {
+    public void deactivate() {
         this.active = false;
     }
 }

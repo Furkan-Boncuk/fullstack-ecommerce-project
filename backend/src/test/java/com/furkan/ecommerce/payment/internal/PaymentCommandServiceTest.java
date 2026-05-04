@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,6 +13,11 @@ import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.api.OrderReadApi;
 import com.furkan.ecommerce.order.api.dto.OrderInventoryView;
 import com.furkan.ecommerce.order.api.dto.OrderPaymentView;
+import com.furkan.ecommerce.payment.internal.config.PaymentCallbackProperties;
+import com.furkan.ecommerce.payment.internal.domain.Payment;
+import com.furkan.ecommerce.payment.internal.domain.PaymentAttempt;
+import com.furkan.ecommerce.payment.internal.persistence.PaymentAttemptRepository;
+import com.furkan.ecommerce.payment.internal.persistence.PaymentRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;

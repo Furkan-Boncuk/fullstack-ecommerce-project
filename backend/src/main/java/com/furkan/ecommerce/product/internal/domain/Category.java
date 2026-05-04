@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
 import com.furkan.ecommerce.common.exception.BusinessException;
@@ -18,7 +18,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Table(name = "categories")
 @SQLRestriction("active = true")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class Category extends BaseEntity {
+public class Category extends BaseEntity {
     @Column(nullable = false, length = 120)
     private String name;
 
@@ -41,7 +41,7 @@ class Category extends BaseEntity {
     @Column(nullable = false)
     private boolean active;
 
-    static Category create(String name, String slug, String description, String imageUrl, Category parent, Integer sortOrder) {
+    public static Category create(String name, String slug, String description, String imageUrl, Category parent, Integer sortOrder) {
         Category category = new Category();
         category.name = requireText(name, "CATEGORY_NAME_REQUIRED", "Category name is required");
         category.slug = requireText(slug, "CATEGORY_SLUG_REQUIRED", "Category slug is required");

@@ -1,10 +1,12 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.application;
 
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.common.exception.ResourceNotFoundException;
 import com.furkan.ecommerce.product.api.ProductReadApi;
 import com.furkan.ecommerce.product.api.dto.ProductFilterRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
+import com.furkan.ecommerce.product.internal.persistence.ProductRepository;
+import com.furkan.ecommerce.product.internal.specification.ProductSpecifications;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

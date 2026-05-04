@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.domain;
 
 public enum PaymentStatus {
     INITIATED,

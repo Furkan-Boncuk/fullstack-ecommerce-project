@@ -1,5 +1,6 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.persistence;
 
+import com.furkan.ecommerce.product.internal.domain.Product;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +11,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
     @Override
     @EntityGraph(attributePaths = "category")
     Page<Product> findAll(Specification<Product> specification, Pageable pageable);

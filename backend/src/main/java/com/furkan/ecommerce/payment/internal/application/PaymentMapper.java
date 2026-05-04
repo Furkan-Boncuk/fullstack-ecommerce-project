@@ -1,8 +1,9 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.application;
 
 import com.furkan.ecommerce.order.api.dto.OrderPaymentView;
 import com.furkan.ecommerce.payment.api.dto.PaymentInitResponse;
 import com.furkan.ecommerce.payment.api.dto.PaymentStatusResponse;
+import com.furkan.ecommerce.payment.internal.domain.Payment;
 import java.time.Instant;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

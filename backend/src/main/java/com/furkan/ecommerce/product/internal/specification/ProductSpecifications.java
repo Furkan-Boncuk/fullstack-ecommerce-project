@@ -1,12 +1,13 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.specification;
 
 import com.furkan.ecommerce.product.api.dto.ProductFilterRequest;
+import com.furkan.ecommerce.product.internal.domain.Product;
 import org.springframework.data.jpa.domain.Specification;
 
-final class ProductSpecifications {
+public final class ProductSpecifications {
     private ProductSpecifications() {}
 
-    static Specification<Product> from(ProductFilterRequest filter) {
+    public static Specification<Product> from(ProductFilterRequest filter) {
         return Specification.where(search(filter.search()))
                 .and(minPrice(filter.minPrice()))
                 .and(maxPrice(filter.maxPrice()))

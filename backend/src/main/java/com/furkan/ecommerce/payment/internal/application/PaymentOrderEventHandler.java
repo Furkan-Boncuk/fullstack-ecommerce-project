@@ -1,8 +1,11 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.application;
 
 import com.furkan.ecommerce.common.outbox.ProcessedEvent;
 import com.furkan.ecommerce.common.outbox.ProcessedEventRepository;
 import com.furkan.ecommerce.order.api.event.OrderExpiredEvent;
+import com.furkan.ecommerce.payment.internal.domain.PaymentAttemptStatus;
+import com.furkan.ecommerce.payment.internal.persistence.PaymentAttemptRepository;
+import com.furkan.ecommerce.payment.internal.persistence.PaymentRepository;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

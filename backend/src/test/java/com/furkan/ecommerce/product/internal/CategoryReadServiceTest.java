@@ -1,7 +1,9 @@
-package com.furkan.ecommerce.product.internal;
+package com.furkan.ecommerce.product.internal.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.furkan.ecommerce.product.internal.domain.Category;
+import com.furkan.ecommerce.product.internal.persistence.CategoryRepository;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Optional;

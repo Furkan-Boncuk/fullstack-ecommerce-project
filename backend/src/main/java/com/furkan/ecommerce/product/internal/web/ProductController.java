@@ -3,7 +3,7 @@ package com.furkan.ecommerce.product.internal.web;
 import com.furkan.ecommerce.common.dto.PageResponse;
 import com.furkan.ecommerce.product.api.dto.ProductFilterRequest;
 import com.furkan.ecommerce.product.api.dto.ProductView;
-import com.furkan.ecommerce.product.internal.ProductReadService;
+import com.furkan.ecommerce.product.internal.application.ProductReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;

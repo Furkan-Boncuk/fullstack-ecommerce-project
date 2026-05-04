@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.application;
 
 import com.furkan.ecommerce.auth.api.dto.AuthPaymentProfileView;
 import java.math.BigDecimal;

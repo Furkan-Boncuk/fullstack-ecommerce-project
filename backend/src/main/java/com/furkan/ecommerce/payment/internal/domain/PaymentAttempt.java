@@ -1,4 +1,4 @@
-package com.furkan.ecommerce.payment.internal;
+package com.furkan.ecommerce.payment.internal.domain;
 
 import com.furkan.ecommerce.common.domain.BaseEntity;
 import com.furkan.ecommerce.common.exception.BusinessException;
@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "payment_attempts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class PaymentAttempt extends BaseEntity {
+public class PaymentAttempt extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id", nullable = false)
     private Payment payment;
@@ -53,7 +53,7 @@ class PaymentAttempt extends BaseEntity {
     @Column(nullable = false)
     private Instant expiresAt;
 
-    static PaymentAttempt request(Payment payment, Long orderId, String attemptReference, BigDecimal amount, Instant expiresAt) {
+    public static PaymentAttempt request(Payment payment, Long orderId, String attemptReference, BigDecimal amount, Instant expiresAt) {
         PaymentAttempt attempt = new PaymentAttempt();
         attempt.payment = payment;
         attempt.orderId = orderId;
@@ -64,12 +64,12 @@ class PaymentAttempt extends BaseEntity {
         return attempt;
     }
 
-    boolean isActive(Instant now) {
+    public boolean isActive(Instant now) {
         return (status == PaymentAttemptStatus.INIT_REQUESTED || status == PaymentAttemptStatus.ACTION_REQUIRED)
                 && expiresAt.isAfter(now);
     }
 
-    void markActionRequired(String checkoutUrl, String checkoutToken) {
+    public void markActionRequired(String checkoutUrl, String checkoutToken) {
         ensureNotFinalized();
         this.checkoutUrl = checkoutUrl;
         this.checkoutToken = checkoutToken;
@@ -77,7 +77,7 @@ class PaymentAttempt extends BaseEntity {
         this.status = PaymentAttemptStatus.ACTION_REQUIRED;
     }
 
-    TransitionResult markSucceeded(String transactionId) {
+    public TransitionResult markSucceeded(String transactionId) {
         if (status == PaymentAttemptStatus.SUCCEEDED) {
             return TransitionResult.NOOP;
         }
@@ -92,7 +92,7 @@ class PaymentAttempt extends BaseEntity {
         return TransitionResult.CHANGED;
     }
 
-    TransitionResult markFailed(String transactionId, String errorCode) {
+    public TransitionResult markFailed(String transactionId, String errorCode) {
         if (status == PaymentAttemptStatus.FAILED && same(this.errorCode, errorCode)) {
             return TransitionResult.NOOP;
         }
@@ -107,7 +107,7 @@ class PaymentAttempt extends BaseEntity {
         return TransitionResult.CHANGED;
     }
 
-    TransitionResult markExpired(Instant now) {
+    public TransitionResult markExpired(Instant now) {
         if (status == PaymentAttemptStatus.EXPIRED) {
             return TransitionResult.NOOP;
         }
@@ -131,7 +131,7 @@ class PaymentAttempt extends BaseEntity {
         return left == null ? right == null : left.equals(right);
     }
 
-    enum TransitionResult {
+    public enum TransitionResult {
         CHANGED,
         NOOP
     }
